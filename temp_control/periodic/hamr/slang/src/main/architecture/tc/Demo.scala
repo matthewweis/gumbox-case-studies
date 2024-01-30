@@ -32,7 +32,7 @@ object Demo extends App {
           case Cli.RunChoice.Static => Schedulers.getStaticScheduler(None())
           case Cli.RunChoice.Legacy => Schedulers.getLegacyScheduler()
         }
-        art.Art.run(Arch.ad, scheduler)
+        art.Art.run(Arch.ad, CompletelyLocalArch.services, scheduler)
       case Some(o: Cli.HelpOption) =>
       case _ => return 1
     }

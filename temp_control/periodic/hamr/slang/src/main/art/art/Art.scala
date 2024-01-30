@@ -138,13 +138,14 @@ object Art {
   }
 
   def run(system: ArchitectureDescription,
+          services: IS[Art.PortId, Option[PortServiceBundle]],
           scheduler: Scheduler): Unit = {
 
     assemble(system)
 
     setUpArchitecture()
     setUpPlatform()
-    setUpSystemState(scheduler)
+    setUpSystemState(services, scheduler)
 
     initializePhase(scheduler)
     computePhase(scheduler)
@@ -178,8 +179,9 @@ object Art {
 
   def tearDownPlatform(): Unit = {}
 
-  def setUpSystemState(scheduler: Scheduler): Unit = {
-    ArtNative.setUpSystemState()
+  def setUpSystemState(services: IS[Art.PortId, Option[PortServiceBundle]], scheduler: Scheduler): Unit = {
+    val registry: InfrastructureRegistry = InfrastructureRegistry.launch(services)
+    ArtNative.setUpSystemState(registry)
     scheduler.initialize()
   }
 
@@ -254,6 +256,7 @@ object Art {
   // JH: Refactored
   //   add system test capability
   def initSystemTest(system: ArchitectureDescription,
+                     services: IS[Art.PortId, Option[PortServiceBundle]],
                      scheduler: Scheduler): Unit = {
     // remove all bridges
     for (i <- bridges.indices) {
@@ -269,7 +272,7 @@ object Art {
     assemble(system)
 
     // let ArtNative reset itself as well
-    ArtNative.initSystemTest(scheduler)
+    ArtNative.initSystemTest(services, scheduler)
   }
 
   //  def executeSystemTest(): Unit = {
