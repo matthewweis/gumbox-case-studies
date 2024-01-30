@@ -35,7 +35,7 @@ object Demo extends App {
 
         Platform.setup()
 
-        art.Art.run(Arch.ad, scheduler)
+        art.Art.run(Arch.ad, CompletelyLocalArch.services, scheduler)
 
         Platform.tearDown()
       case Some(o: Cli.HelpOption) =>
