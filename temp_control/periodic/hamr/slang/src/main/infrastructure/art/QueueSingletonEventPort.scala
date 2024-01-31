@@ -15,7 +15,7 @@ class QueueSingletonEventPort[E]() extends Queue[E] {
   }
 
   override def drain(consumer: E => Unit): Unit = {
-    // data ports don't "drain" on being read
+    // event ports "drain" on being read
     val e = target.getAndSet(null.asInstanceOf[E])
     if (e != null) consumer(e)
   }
