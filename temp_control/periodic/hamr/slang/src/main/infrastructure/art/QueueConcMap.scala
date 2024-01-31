@@ -2,7 +2,7 @@ package art
 
 import org.sireum._
 
-class DequeueConcMap(portId: Art.PortId, target: Dequeue[DataContent]) extends Dequeue[ArtMessage] {
+class InfrastructureInPortQueueWrapper(portId: Art.PortId, target: Dequeue[DataContent]) extends Dequeue[ArtMessage] {
 
   def wrap(data: DataContent): ArtMessage = {
     return ArtMessage(data = data, srcPortId = Some(portId), putValueTimestamp = Art.time())
@@ -25,7 +25,7 @@ class DequeueConcMap(portId: Art.PortId, target: Dequeue[DataContent]) extends D
   override def string: String = super.toString()
 }
 
-class EnqueueConcMap(portId: Art.PortId, target: Enqueue[DataContent]) extends Enqueue[ArtMessage] {
+class InfrastructureOutPortQueueWrapper(portId: Art.PortId, target: Enqueue[DataContent]) extends Enqueue[ArtMessage] {
 
   // since this queue holds a single value, always override any existing
   override def offer(e: ArtMessage): B = {

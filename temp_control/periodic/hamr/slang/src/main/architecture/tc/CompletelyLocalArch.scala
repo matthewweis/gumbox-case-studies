@@ -31,23 +31,23 @@ object CompletelyLocalArch {
     val services: MS[art.Art.PortId, Option[PortServiceBundle]] = MS.create[art.Art.PortId, Option[PortServiceBundle]](Art.numPorts, None())
 
     // fan
-    services(TempControlSoftwareSystem_p_Instance_tcproc_fan.fanAck.id) = Some(localOut)
-    services(TempControlSoftwareSystem_p_Instance_tcproc_fan.fanCmd.id) = Some(localIn)
+    services(TempControlSoftwareSystem_p_Instance_tcproc_fan.fanAck.id) = Some(bundleOut(local, dataQueue))
+    services(TempControlSoftwareSystem_p_Instance_tcproc_fan.fanCmd.id) = Some(bundleIn(local, dataQueue))
 
     // temp sensor
-    services(TempControlSoftwareSystem_p_Instance_tcproc_tempSensor.currentTemp.id) = Some(localOut)
+    services(TempControlSoftwareSystem_p_Instance_tcproc_tempSensor.currentTemp.id) = Some(bundleOut(local, dataQueue))
 
 
     // temp control system
-    services(TempControlSoftwareSystem_p_Instance_tcproc_tempControl.fanCmd.id) = Some(localOut)
-    services(TempControlSoftwareSystem_p_Instance_tcproc_tempControl.currentTemp.id) = Some(localIn)
+    services(TempControlSoftwareSystem_p_Instance_tcproc_tempControl.fanCmd.id) = Some(bundleOut(local, dataQueue))
+    services(TempControlSoftwareSystem_p_Instance_tcproc_tempControl.currentTemp.id) = Some(bundleIn(local, dataQueue))
 
-    services(TempControlSoftwareSystem_p_Instance_tcproc_tempControl.fanAck.id) = Some(localIn)
-    services(TempControlSoftwareSystem_p_Instance_tcproc_tempControl.setPoint.id) = Some(localIn)
+    services(TempControlSoftwareSystem_p_Instance_tcproc_tempControl.fanAck.id) = Some(bundleIn(local, dataQueue))
+    services(TempControlSoftwareSystem_p_Instance_tcproc_tempControl.setPoint.id) = Some(bundleIn(local, dataQueue))
 
     // operator interface
-    services(TempControlSoftwareSystem_p_Instance_tcproc_operatorInterface.setPoint.id) = Some(localOut)
-    services(TempControlSoftwareSystem_p_Instance_tcproc_operatorInterface.currentTemp.id) = Some(localIn)
+    services(TempControlSoftwareSystem_p_Instance_tcproc_operatorInterface.setPoint.id) = Some(bundleOut(local, dataQueue))
+    services(TempControlSoftwareSystem_p_Instance_tcproc_operatorInterface.currentTemp.id) = Some(bundleIn(local, dataQueue))
 
 
     services.toIS
