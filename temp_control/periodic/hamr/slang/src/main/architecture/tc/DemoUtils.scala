@@ -16,18 +16,20 @@ import art.PortMode._
 object DemoUtils {
 
   // queue (service)
-  val queue: () => Queue[DataContent] =
-    () => Queues.createQueue(z"64", OverflowStrategy.DropOldest)
+  // WARNING: DATA QUEUE USING EVENT
+  val dataQueue: () => Queue[DataContent] = () => Queues.createSingletonDataQueue()
+  val eventQueue: () => Queue[DataContent] = () => Queues.createSingletonEventQueue()
 
-  // infrastructure (service)
+  // infrastructure
   val jms: InfrastructureInOut = InfrastructureCombiner(Infrastructures.jmsIn(), Infrastructures.jmsOut())
-
   val local: InfrastructureInOut = Infrastructures.local()
 
-  // bundles
-  val jmsIn: InPortServiceBundle = InPortServiceBundle(jms, queue)
-  val jmsOut: OutPortServiceBundle = OutPortServiceBundle(jms, queue)
-  val localIn: InPortServiceBundle = InPortServiceBundle(local, queue)
-  val localOut: OutPortServiceBundle = OutPortServiceBundle(local, queue)
+  def bundleIn(infrastructure: InfrastructureIn, queueSupplier: () => Queue[DataContent]): InPortServiceBundle = {
+    return InPortServiceBundle(infrastructure, queueSupplier)
+  }
+
+  def bundleOut(infrastructure: InfrastructureOut, queueSupplier: () => Queue[DataContent]): OutPortServiceBundle = {
+    return OutPortServiceBundle(infrastructure, queueSupplier)
+  }
 
 }

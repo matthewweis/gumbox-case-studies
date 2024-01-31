@@ -13,10 +13,8 @@ import art._
 
 @ext object Queues {
 
-//  def inInfrastructurePortsQueueWrapper[E](portId: Z): Queue[E] = $
-//  def outInfrastructurePortsQueueWrapper[E](portId: Z): Queue[E] = $
-//  def inPortVariablesQueueWrapper[E](portId: Z): Queue[E] = $
-//  def outPortVariablesQueueWrapper[E](portId: Z): Queue[E] = $
-
   def createQueue[E](capacity: Z, overflowStrategy: OverflowStrategy.Type): Queue[E] = $
+
+  def createSingletonEventQueue[E](): Queue[E] = $
+  def createSingletonDataQueue[E](): Queue[E] = $
 }

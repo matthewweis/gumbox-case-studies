@@ -101,37 +101,36 @@ object ArtNative_Ext {
     ArtTimer_Ext.scheduledCallbacks.keys.foreach(ArtTimer_Ext.cancel)
 
     // setup queues for infrastructurePorts and portVariables
-    setUpPortQueues(registry) // todo clear queues before removing from MMap (in case of broker-backed queues)
+    setUpPortQueues(registry)
 
     //scheduler.initialize()
   }
 
   def setUpPortQueues(registry: InfrastructureRegistry): Unit = {
-    // temp: just copy infrastructureRegistry into existing maps (eventually it will replace maps)
     Art.ports.foreach((maybePort: Option[art.UPort]) => {
-      //      println(s"matching $maybePort")
       maybePort match {
         case Some(port) => {
-          //          sentPortValues(port.id) = Queues.createQueue(z"1", OverflowStrategy.Error) // local
-          //          receivedPortValues(port.id) = Queues.createQueue(z"1", OverflowStrategy.Error) // local
+          // local
+          // TODO -- where should this be configured? Should probably always be same type as matching infrastructure?
+          port.mode match {
+            case PortMode.EventIn => inPortVariables(port.id.toZ) = Queues.createSingletonEventQueue()
+            case PortMode.EventOut => outPortVariables(port.id.toZ) = Queues.createSingletonEventQueue()
+            case PortMode.DataIn => inPortVariables(port.id.toZ) = Queues.createSingletonDataQueue()
+            case PortMode.DataOut => outPortVariables(port.id.toZ) = Queues.createSingletonDataQueue()
+          }
+
+          // infrastructure
           port.mode match {
             case PortMode.EventIn | PortMode.DataIn => {
-              inPortVariables(port.id.toZ) = Queues.createQueue(z"1", OverflowStrategy.DropOldest) // local
-              // todo remove PortServiceManager, instead just get from arch description
               val consumer: Option[Dequeue[DataContent]] = registry.inboundPortQueues(port.id.toZ)
-              //              println(s"IN port ${port.id} with consumer $consumer")
               if (consumer.nonEmpty) {
-                // converts DataContent and ArtMessage
-                inInfrastructurePorts(port.id.toZ) = new DequeueConcMap(port.id, consumer.get)
+                inInfrastructurePorts(port.id.toZ) = new InfrastructureInPortQueueWrapper(port.id, consumer.get)
               }
             }
             case PortMode.EventOut | PortMode.DataOut => {
-              outPortVariables(port.id.toZ) = Queues.createQueue(z"64", OverflowStrategy.DropOldest) // local
               val producer: Option[Enqueue[DataContent]] = registry.outboundPortQueues(port.id.toZ)
-              //              println(s"OUT port ${port.id} with producer $producer")
               if (producer.nonEmpty) {
-                // converts DataContent and ArtMessage
-                outInfrastructurePorts(port.id.toZ) = new EnqueueConcMap(port.id, producer.get)
+                outInfrastructurePorts(port.id.toZ) = new InfrastructureOutPortQueueWrapper(port.id, producer.get)
               }
             }
           }
@@ -159,12 +158,45 @@ object ArtNative_Ext {
 
   // JH: Refactored -- renamed port data structures
   // TODO -- Consider whether changing the value from ArtMessage to Art.DataContent should happen here (instead of in getValue)
+//  def receiveInput(eventPortIds: ISZ[Art.PortId], dataPortIds: ISZ[Art.PortId]): Unit = {
+//    // remove any old events from previous dispatch
+//    for (portId <- eventPortIds if inPortVariables.contains(portId.toZ)) {
+//      inPortVariables -= portId.toZ
+//    }
+//
+//    // transfer received data/events from the infrastructure ports to the port variables
+//    for (portId <- eventPortIds) {
+//      inInfrastructurePorts.get(portId.toZ) match {
+//        case scala.Some(data) =>
+//          inInfrastructurePorts -= portId.toZ // dequeue from infrastructure port
+//          inPortVariables(portId.toZ) = data // when we shift to queue size greater than 1, we would enqueue here
+//        case _ =>
+//      }
+//    }
+//    for (portId <- dataPortIds) {
+//      inInfrastructurePorts.get(portId.toZ) match {
+//        case scala.Some(data) =>
+//          // for data ports, we don't dequeue from infrastastructure ports
+//          inPortVariables(portId.toZ) = data
+//        case _ =>
+//      }
+//    }
+//  }
+
   def receiveInput(eventPortIds: ISZ[Art.PortId], dataPortIds: ISZ[Art.PortId]): Unit = {
     for (portId <- eventPortIds) {
+      //      receivedPortValues -= portId // remove stale events from previous dispatch
+      inPortVariables(portId.toZ).offer(null)
+      // todo new
+      //      receivedPortValues(portId).drain((data: ArtMessage) => println(s"Removing stale event: $data"))
+
+
       inInfrastructurePorts.get(portId.toZ) match {
         case scala.Some(queueConsumer: Dequeue[ArtMessage]) =>
-          queueConsumer.drain((data: ArtMessage) => {
-            inPortVariables(portId.toZ).offer(data)
+          //          queueConsumer.drain((data: DataContent) => receivedPortValues(portId) = ArtMessage(data))
+          queueConsumer.drain((msg: ArtMessage) => {
+            println(s"Copying from infrastructure to local port=$portId, data=$msg")
+            inPortVariables(portId.toZ).offer(msg)
           })
         case _ =>
       }
@@ -173,11 +205,10 @@ object ArtNative_Ext {
       inInfrastructurePorts.get(portId.toZ) match {
         case scala.Some(queueConsumer: Dequeue[ArtMessage]) => {
           // todo decide logic for non-single queues
-          val dataOpt: Option[ArtMessage] = queueConsumer.peek()
-          dataOpt match {
-            case Some(data) => inPortVariables(portId.toZ).offer(data)
-            case _ =>
-          }
+          queueConsumer.drain((msg: ArtMessage) => {
+            println(s"Copying from infrastructure to local port=$portId, data=$msg")
+            inPortVariables(portId.toZ).offer(msg)
+          })
         }
         case _ =>
       }
@@ -217,6 +248,12 @@ object ArtNative_Ext {
           }
         case _ =>
       }
+
+      // simulate sending msg via transport middleware
+      // todo no longer need to simulate transport, but what about calling ArgDebug out?
+
+      // payload delivered so remove it from out infrastructure port
+      // todo payload is no longer necessarily delivered at end of this function. Should this be delayed for after an ack?
     }
   }
 
@@ -467,6 +504,9 @@ object ArtNative_Ext {
     val artMessage = ArtMessage(data = data, dstPortId = Some(dstPortId), dstArrivalTimestamp = Art.time())
     // note: right now, there is no difference in the logic between data and event ports, but keep the
     // logic separate for future refactoring
+
+    // todo inserting into an infrastructure port assumes its using a locally writable queue (hence the cast)
+    //      An example of a non-locally-writable queue may be one backed by a networked broker with async listener
     Art.port(dstPortId).mode match {
       case PortMode.DataIn | PortMode.DataOut =>
         inInfrastructurePorts(dstPortId.toZ).asInstanceOf[Queue[ArtMessage]].offer(artMessage)

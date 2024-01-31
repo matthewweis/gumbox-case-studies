@@ -8,7 +8,7 @@ import javax.jms.{JMSException, Message, MessageConsumer, MessageListener, Sessi
 
 class InfrastructureAsyncQueueForwardingConsumer(session: Session, consumer: MessageConsumer, queue: Enqueue[String]) {
 
-  // queue intentionally unused
+  // queue intentionally unused (see setupQueueForwarding(...) in object below for queue usage)
 
   def close(): Unit = {
     session.close()
