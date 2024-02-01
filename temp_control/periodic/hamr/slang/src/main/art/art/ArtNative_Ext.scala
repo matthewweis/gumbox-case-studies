@@ -112,6 +112,7 @@ object ArtNative_Ext {
         case Some(port) => {
           // local
           // TODO -- where should this be configured? Should probably always be same type as matching infrastructure?
+
           port.mode match {
             case PortMode.EventIn => inPortVariables(port.id.toZ) = Queues.createSingletonEventQueue()
             case PortMode.EventOut => outPortVariables(port.id.toZ) = Queues.createSingletonEventQueue()
@@ -124,13 +125,13 @@ object ArtNative_Ext {
             case PortMode.EventIn | PortMode.DataIn => {
               val consumer: Option[Dequeue[DataContent]] = registry.inboundPortQueues(port.id.toZ)
               if (consumer.nonEmpty) {
-                inInfrastructurePorts(port.id.toZ) = new InfrastructureInPortQueueWrapper(port.id, consumer.get)
+                inInfrastructurePorts(port.id.toZ) = new Queues_Ext.InfrastructureInPortQueueWrapper(port.id, consumer.get)
               }
             }
             case PortMode.EventOut | PortMode.DataOut => {
               val producer: Option[Enqueue[DataContent]] = registry.outboundPortQueues(port.id.toZ)
               if (producer.nonEmpty) {
-                outInfrastructurePorts(port.id.toZ) = new InfrastructureOutPortQueueWrapper(port.id, producer.get)
+                outInfrastructurePorts(port.id.toZ) = new Queues_Ext.InfrastructureOutPortQueueWrapper(port.id, producer.get)
               }
             }
           }
