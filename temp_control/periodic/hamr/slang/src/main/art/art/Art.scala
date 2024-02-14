@@ -26,7 +26,7 @@ object Art {
   val connections: MS[Art.PortId, IS[Art.ConnectionId, Art.PortId]] = MS.create[Art.PortId, IS[Art.ConnectionId, Art.PortId]](numPorts, IS())
 
   // Note on transpiling:
-  // ports and conenctions are not touched/transpiled when targeting seL4. Bridges
+  // ports and connections are not touched/transpiled when targeting seL4. Bridges
   // are isolated when transpiling so BridgeId.Max could be 0, but changing Min/Max is
   // not currently supported by the transpiler so instead bridges is defined as an MSZ
   // so that that its size can be set to 1 and thus reduce stack space requirements
@@ -293,17 +293,20 @@ object Art {
     ArtNative.manuallyClearOutput()
   }
 
-  def insertInPortValue(dstPortId: Art.PortId, data: DataContent): Unit = {
-    ArtNative.insertInPortValue(dstPortId, data)
+  def insertInInfrastructurePort(dstPortId: Art.PortId, data: DataContent): Unit = {
+    ArtNative.insertInInfrastructurePort(dstPortId, data)
   }
 
-  def observeOutPortValue(portId: Art.PortId): Option[DataContent] = {
-    return ArtNative.observeOutPortValue(portId)
+  def observeInInfrastructurePort(portId: Art.PortId): Option[DataContent] = {
+    return ArtNative.observeInInfrastructurePort(portId)
   }
 
-  // JH: Refactored - manually added method to support
-  def observeInPortValue(portId: Art.PortId): Option[DataContent] = {
-    return ArtNative.observeInPortValue(portId)
+  def observeOutInfrastructurePort(portId: Art.PortId): Option[DataContent] = {
+    return ArtNative.observeOutInfrastructurePort(portId)
+  }
+
+  def observeInPortVariable(portId: Art.PortId): Option[DataContent] = {
+    return ArtNative.observeInPortVariable(portId)
   }
 
   def observeOutPortVariable(portId: Art.PortId): Option[DataContent] = {

@@ -2,67 +2,29 @@ package tc.TempControlSoftwareSystem
 
 import org.sireum._
 import tc.TempControlSoftwareSystem._
-import tc.GumboXUtil
-import tc.GumboXUtil.GumboXResult
-import tc.RandomLib
-import org.sireum.Random.Gen64
+import tc._
 import org.sireum.Random.Impl.Xoshiro256
 
-// This file was auto-generated.  Do not edit
-class OperatorInterfacePeriodic_p_tcproc_operatorInterface_GumboX_Tests extends OperatorInterfacePeriodic_p_tcproc_operatorInterface_GumboX_TestHarness_ScalaTest {
+// This file will not be overwritten so is safe to edit
 
-  val failOnUnsatPreconditions: B = F
+class OperatorInterfacePeriodic_p_tcproc_operatorInterface_GumboX_Tests extends OperatorInterfacePeriodic_p_tcproc_operatorInterface_GumboX_TestHarness_ScalaTest_Generator {
 
-  {
-    val seedGen: Gen64 = Random.Gen64Impl(Xoshiro256.create)
-    val ranLibcurrentTemp: RandomLib = RandomLib(Random.Gen64Impl(Xoshiro256.createSeed(seedGen.genU64())))
+  // set verbose to T to see pre/post state values and generated unit tests
+  // that can be copied/pasted to replay a test
+  override val verbose: B = F
 
-    // getInputs - needed
-    def getInputs(): Option[OperatorInterfacePeriodic_p_tcproc_operatorInterface_SlangCheckContainer] = {
-      try {
-        val api_currentTemp = ranLibcurrentTemp.next_TempSensorTemperature_i()
+  // set failOnUnsatPreconditions to T if the unit tests should fail when either
+  // SlangCheck is never able to satisfy a datatype's filter or the generated
+  // test vectors are never able to satisfy an entry point's assume pre-condition
+  override val failOnUnsatPreconditions: B = F
 
-        return Some(OperatorInterfacePeriodic_p_tcproc_operatorInterface_SlangCheckContainer(api_currentTemp))
-      } catch {
-        case e: AssertionError => return None()
-      }
-    }
+  // profiles that will be used for the initialise tests
+  override def getInitialiseProfiles: MSZ[OperatorInterfacePeriodic_p_tcproc_operatorInterface_Profile] = {
+    return MSZ(getDefaultInitialiseProfile)
+  }
 
-    for (i <- 0 to 100) {
-      this.registerTest(i.toString) {
-        var retry: B = T
-
-        var j: Z = 0
-        while (j < GumboXUtil.numRetries && retry) {
-          getInputs() match {
-            case Some(o) =>
-
-              println(st"""${if (j > 0) s"Retry $j: " else ""}Testing with
-                        |    currentTemp = $o.api_currentTemp""".render)
-
-              testComputeCB(o.api_currentTemp) match {
-                case GumboXResult.Pre_Condition_Unsat =>
-                case GumboXResult.Post_Condition_Fail =>
-                  fail ("Post condition did not hold")
-                  retry = F
-                case GumboXResult.Post_Condition_Pass =>
-                  // success
-                  println ("Success!")
-                  retry = F
-              }
-            case _ =>
-          }
-          j = j + 1
-        }
-
-        if (retry) {
-          if (failOnUnsatPreconditions) {
-            fail ("Unable to satisfy precondition")
-          } else {
-            cprintln(T, "Unable to satisfy precondition")
-          }
-        }
-      }
-    }
+  // profiles that will be used to generate the incoming port values
+  override def getProfiles_P: MSZ[OperatorInterfacePeriodic_p_tcproc_operatorInterface_Profile_P] = {
+    return MSZ(getDefaultProfile_P)
   }
 }

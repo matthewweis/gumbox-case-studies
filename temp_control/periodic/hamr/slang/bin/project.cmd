@@ -61,8 +61,10 @@ val slangModule: Module = Module(
   subPathOpt = None(),
   deps = ISZ(),
   targets = ISZ(Target.Jvm),
-  ivyDeps = ISZ("org.sireum.kekinian::library:", "org.apache.activemq:activemq-all:"),
-  sources = for(m <- ISZ("art", "architecture", "bridge", "component", "data", "infrastructure", "nix", "seL4Nix")) yield (Os.path("main") / m).string,
+  ivyDeps = ISZ("org.sireum.kekinian::library:",
+                "org.sireum.kekinian::hamr-vision:",
+                "org.apache.activemq:activemq-all:"), // <-- for distributed HAMR's JMS infrastructure
+  sources = for(m <- ISZ("art", "architecture", "bridge", "component", "data", "infrastructure", "nix", "seL4Nix", "util")) yield (Os.path("main") / m).string,
   resources = ISZ(),
   testSources = for (m <- ISZ("bridge", "util")) yield (Os.path("test") / m).string,
   testResources = ISZ(),
