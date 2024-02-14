@@ -9,31 +9,20 @@ import tc._
 object FanPeriodic_p_tcproc_fan {
 
   def initialise(api: FanPeriodic_p_Initialization_Api): Unit = {
-    // The Initialize Entry Point must initialize all component local state and all output data ports.
+    // example api usage
 
-    // initialize component local state
-    //   (no component local state to initialize)
+    api.logInfo("Example info logging")
+    api.logDebug("Example debug logging")
+    api.logError("Example error logging")
 
-    // initialize output data ports
-    api.put_fanAck(FanAck.Ok)
+    api.put_fanAck(CoolingFan.FanAck.byOrdinal(0).get)
   }
 
   def timeTriggered(api: FanPeriodic_p_Operational_Api): Unit = {
-    // log the received fan command
-    val value = api.get_fanCmd().get
-    api.logInfo(s"received fanCmd $value")
+    // example api usage
 
-    // send actuation command to fan driver
-    // via interface realized via Slang Extension "FanNative"
-    val ack = FanDevice.fanCmdActuate(value)
-
-    // put an event on fanAck out event data port to
-    // notify subscribers (e.g., tempControl thermostat) that the
-    // fan actuation has been achieved
-    api.put_fanAck(ack)
-
-    // log the actuation result
-    api.logInfo(s"Actuation result: ${ack}")
+    val apiUsage_fanCmd: Option[CoolingFan.FanCmd.Type] = api.get_fanCmd()
+    api.logInfo(s"Received on data port fanCmd: ${apiUsage_fanCmd}")
   }
 
   def activate(api: FanPeriodic_p_Operational_Api): Unit = { }
@@ -43,22 +32,4 @@ object FanPeriodic_p_tcproc_fan {
   def finalise(api: FanPeriodic_p_Operational_Api): Unit = { }
 
   def recover(api: FanPeriodic_p_Operational_Api): Unit = { }
-}
-
-//=================================================
-//
-//  Slang extension used to interface with non-Slang
-//  code to turn the fan hardware on or off.
-//
-//  In this case, the extension is abstracting a call
-//  to underlying communication/hardware infrastructure
-//  to control the fan.
-//
-//  Early in development we may choose to simulate the
-//  sensor.  Later we may construct a extension implementation that
-//  writes to an actual hardware interface to control the fan.
-//=================================================
-
-@ext("FanDevice_Ext_Sim") object FanDevice {
-  def fanCmdActuate(cmd: FanCmd.Type): FanAck.Type = $
 }
