@@ -107,36 +107,52 @@ object ArtNative_Ext {
   }
 
   def setUpPortQueues(registry: InfrastructureRegistry): Unit = {
+    setUpPortVariableQueues()
+    setUpInfrastructurePortQueues(registry)
+  }
+
+  def initPortVariable(port: UPort): Unit = {
+    // TODO -- where should this eventually be configured? Should probably always be same type as matching infrastructure?
+    port.mode match {
+      case PortMode.EventIn => inPortVariables(port.id.toZ) = Queues.createSingletonEventQueue()
+      case PortMode.EventOut => outPortVariables(port.id.toZ) = Queues.createSingletonEventQueue()
+      case PortMode.DataIn => inPortVariables(port.id.toZ) = Queues.createSingletonDataQueue()
+      case PortMode.DataOut => outPortVariables(port.id.toZ) = Queues.createSingletonDataQueue()
+    }
+  }
+
+  def setUpPortVariableQueues(): Unit = {
+    Art.ports.foreach((maybePort: Option[art.UPort]) => {
+      maybePort match {
+        case Some(port) => initPortVariable(port)
+        case None() => logError("ArtNative", "WARNING: A port was empty after Art init.")
+      }
+    })
+  }
+
+  // todo temp variable pending discussion about resetting infrastructure queues
+  var portRegistryTestRef: Option[InfrastructureRegistry] = None()
+  def setUpInfrastructurePortQueues(registry: InfrastructureRegistry): Unit = {
+    portRegistryTestRef = Some(registry)
     Art.ports.foreach((maybePort: Option[art.UPort]) => {
       maybePort match {
         case Some(port) => {
-          // local
-          // TODO -- where should this be configured? Should probably always be same type as matching infrastructure?
-
-          port.mode match {
-            case PortMode.EventIn => inPortVariables(port.id.toZ) = Queues.createSingletonEventQueue()
-            case PortMode.EventOut => outPortVariables(port.id.toZ) = Queues.createSingletonEventQueue()
-            case PortMode.DataIn => inPortVariables(port.id.toZ) = Queues.createSingletonDataQueue()
-            case PortMode.DataOut => outPortVariables(port.id.toZ) = Queues.createSingletonDataQueue()
-          }
-
           // infrastructure
           port.mode match {
             case PortMode.EventIn | PortMode.DataIn => {
-              val consumer: Option[Dequeue[DataContent]] = registry.inboundPortQueues(port.id.toZ)
-              if (consumer.nonEmpty) {
-                inInfrastructurePorts(port.id.toZ) = new Queues_Ext.InfrastructureInPortQueueWrapper(port.id, consumer.get)
+              val in: Option[Dequeue[DataContent]] = registry.inboundPortQueues(port.id.toZ)
+              if (in.nonEmpty) {
+                inInfrastructurePorts(port.id.toZ) = new Queues_Ext.InfrastructureInPortQueueWrapper(port.id, in.get)
               }
             }
             case PortMode.EventOut | PortMode.DataOut => {
-              val producer: Option[Enqueue[DataContent]] = registry.outboundPortQueues(port.id.toZ)
-              if (producer.nonEmpty) {
-                outInfrastructurePorts(port.id.toZ) = new Queues_Ext.InfrastructureOutPortQueueWrapper(port.id, producer.get)
+              val out: Option[Enqueue[DataContent]] = registry.outboundPortQueues(port.id.toZ)
+              if (out.nonEmpty) {
+                outInfrastructurePorts(port.id.toZ) = new Queues_Ext.InfrastructureOutPortQueueWrapper(port.id, out.get)
               }
             }
           }
         }
-
         case None() => logError("ArtNative", "WARNING: A port was empty after Art init.")
       }
     })
@@ -147,6 +163,12 @@ object ArtNative_Ext {
     inPortVariables.clear()
     outPortVariables.clear()
     outInfrastructurePorts.clear()
+
+    setUpPortVariableQueues()
+    portRegistryTestRef match {
+      case Some(registry: InfrastructureRegistry) => setUpInfrastructurePortQueues(registry)
+      case None() => println("[DEBUG] tearDownSystemState skipped infrastructure port setup")
+    }
 
     // cancel pending ArtTimer callbacks (also done after a test completes)
     ArtTimer_Ext.scheduledCallbacks.keys.foreach(ArtTimer_Ext.cancel)
@@ -194,7 +216,6 @@ object ArtNative_Ext {
 
       inInfrastructurePorts.get(portId.toZ) match {
         case scala.Some(queueConsumer: Dequeue[ArtMessage]) =>
-          //          queueConsumer.drain((data: DataContent) => receivedPortValues(portId) = ArtMessage(data))
           queueConsumer.drain((msg: ArtMessage) => {
             println(s"Copying from infrastructure to local port=$portId, data=$msg")
             inPortVariables(portId.toZ).offer(msg)
@@ -272,12 +293,14 @@ object ArtNative_Ext {
     // iterate through inPortIds and clear the value of each corresponding port variable
     for (portId <- inPortIds) {
       inPortVariables -= portId.toZ;
+      initPortVariable(Art.port(portId))
     }
     // compute outPortIds
     val outPortIds = Art.bridges(bridgeId.toZ).get.ports.eventOuts.elements.map(_.id) ++ Art.bridges(bridgeId.toZ).get.ports.dataOuts.elements.map(_.id)
     // iterate through outPortIds and clear the value of each corresponding port variable
     for (portId <- outPortIds) {
       outPortVariables -= portId.toZ
+      initPortVariable(Art.port(portId))
     }
   }
 
@@ -389,6 +412,12 @@ object ArtNative_Ext {
     outPortVariables.clear()
     outInfrastructurePorts.clear()
 
+    setUpPortVariableQueues()
+    portRegistryTestRef match {
+      case Some(registry: InfrastructureRegistry) => setUpInfrastructurePortQueues(registry)
+      case None() => println("[DEBUG] initTest skipped infrastructure port setup (due to non-system tests)")
+    }
+
     // cancel pending ArtTimer callbacks (also done after a test completes)
     ArtTimer_Ext.scheduledCallbacks.keys.foreach(ArtTimer_Ext.cancel)
 
@@ -489,6 +518,7 @@ object ArtNative_Ext {
    */
   def manuallyClearOutput(): Unit = {
     outPortVariables.clear()
+    setUpPortVariableQueues()
   }
 
   // JH: Refactor
