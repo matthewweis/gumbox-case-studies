@@ -165,7 +165,6 @@ object InfrastructureRegistry {
       return portId
     } else if (port.mode == PortMode.EventIn || port.mode == PortMode.DataIn) {
       for (i <- Art.connections.indices) {
-        // if (ISZOps(Art.connections(i)).contains(portId)) {
         if (seqContains(Art.connections(i), portId)) {
           return i
         }
