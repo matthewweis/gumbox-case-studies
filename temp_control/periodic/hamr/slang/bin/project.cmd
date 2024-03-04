@@ -66,7 +66,7 @@ val slangModule: Module = Module(
                 "org.apache.activemq:activemq-all:"),
   sources = for(m <- ISZ("art", "architecture", "bridge", "component", "data", "infrastructure", "nix", "seL4Nix", "util")) yield (Os.path("main") / m).string,
   resources = ISZ(),
-  testSources = for (m <- ISZ("bridge", "system", "util")) yield (Os.path("test") / m).string,
+  testSources = for (m <- ISZ("bridge", "util")) yield (Os.path("test") / m).string,
   testResources = ISZ(),
   publishInfoOpt = None()
 )
