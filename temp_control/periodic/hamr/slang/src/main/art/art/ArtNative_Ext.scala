@@ -489,9 +489,15 @@ object ArtNative_Ext {
     //JH added:
     for (srcPortId <- eventPortIds ++ dataPortIds) {
       outPortVariables.get(srcPortId.toZ) match {
-        case scala.Some(msg) =>
-          outInfrastructurePorts(srcPortId.toZ) = outPortVariables(srcPortId.toZ)
-        case _ =>
+        case scala.Some(variableQueue: Queue[ArtMessage]) =>
+          outInfrastructurePorts.get(srcPortId.toZ) match {
+            case scala.Some(infrastructureEnqueue: Enqueue[ArtMessage]) => {
+              variableQueue.drain((msg: ArtMessage) => infrastructureEnqueue.offer(msg))
+            }
+            case _ => require(F, "Unable to release output.")
+          }
+          // outInfrastructurePorts(srcPortId.toZ) = outPortVariables(srcPortId.toZ)
+        case _ => require(F, "Infeasible")
       }
     }
   }
