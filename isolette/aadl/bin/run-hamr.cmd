@@ -60,7 +60,7 @@ val platform: String =
 val codegenArgs = ISZ("hamr", "codegen",
   "--platform", platform,
   "--package-name", packageName,
-  "--output-dir", (aadlDir.up / "hamr" / "slang").string,
+  "--output-dir", (aadlDir.up / "hamr").string,
   "--output-c-dir", (aadlDir.up / "hamr" / "c").string,
   "--run-transpiler",
   "--bit-width", "32",
@@ -69,7 +69,7 @@ val codegenArgs = ISZ("hamr", "codegen",
   "--exclude-component-impl",
   "--verbose",
   //"--no-proyek-ive",
-  "--aadl-root-dir", aadlDir.string,
+  "--workspace-root-dir", aadlDir.string,
   (aadlDir / ".system").string)
 
 val results = Os.proc(osireum ++ codegenArgs).console.run()

@@ -1,5 +1,6 @@
 **/.IR
 **/.aadlbin-gen/
+**/.bloop/
 **/.settings/
 **/instances
 **/c/nix
