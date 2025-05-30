@@ -9,9 +9,6 @@ import org.sireum.justification.Auto
 // This file will not be overwritten so is safe to edit
 object Manage_Monitor_Interface_impl_thermostat_monitor_temperature_manage_monitor_interface {
 
-  // BEGIN FUNCTIONS
-  @strictpure def timeout_condition_satisfied(): Base_Types.Boolean = T
-  // END FUNCTIONS
   // BEGIN STATE VARS
   var lastCmd: Isolette_Data_Model.On_Off.Type = Isolette_Data_Model.On_Off.byOrdinal(0).get
   // END STATE VARS
@@ -47,38 +44,45 @@ object Manage_Monitor_Interface_impl_thermostat_monitor_temperature_manage_monit
         // case REQ_MMI_1
         //   If the Manage Monitor Interface mode is INIT,
         //   the Monitor Status shall be set to Init.
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=113 
         (api.monitor_mode == Isolette_Data_Model.Monitor_Mode.Init_Monitor_Mode) -->: (api.monitor_status == Isolette_Data_Model.Status.Init_Status),
         // case REQ_MMI_2
         //   If the Manage Monitor Interface mode is NORMAL,
         //   the Monitor Status shall be set to On
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=113 
         (api.monitor_mode == Isolette_Data_Model.Monitor_Mode.Normal_Monitor_Mode) -->: (api.monitor_status == Isolette_Data_Model.Status.On_Status),
         // case REQ_MMI_3
         //   If the Manage Monitor Interface mode is FAILED,
         //   the Monitor Status shall be set to Failed.
         //   Latency: < Max Operator Response Time
         //   Tolerance: N/A
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=113 
         (api.monitor_mode == Isolette_Data_Model.Monitor_Mode.Failed_Monitor_Mode) -->: (api.monitor_status == Isolette_Data_Model.Status.Failed_Status),
         // case REQ_MMI_4
         //   If the Status attribute of the Lower Alarm Temperature
         //   or the Upper Alarm Temperature is Invalid,
         //   the Monitor Interface Failure shall be set to True
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=113 
         (api.lower_alarm_tempWstatus.status == Isolette_Data_Model.ValueStatus.Invalid |
            api.upper_alarm_tempWstatus.status == Isolette_Data_Model.ValueStatus.Invalid) -->: (api.interface_failure.value),
         // case REQ_MMI_5
         //   If the Status attribute of the Lower Alarm Temperature
         //   and the Upper Alarm Temperature is Valid,
         //   the Monitor Interface Failure shall be set to False
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=113 
         (api.lower_alarm_tempWstatus.status == Isolette_Data_Model.ValueStatus.Valid &
            api.upper_alarm_tempWstatus.status == Isolette_Data_Model.ValueStatus.Valid) -->: (!(api.interface_failure.value)),
         // case REQ_MMI_6
         //   If the Monitor Interface Failure is False,
         //   the Alarm Range variable shall be set to the Desired Temperature Range
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=113 
         (T) -->: (!(api.interface_failure.value) -->:
           (api.lower_alarm_temp.value == api.lower_alarm_tempWstatus.value &
             api.upper_alarm_temp.value == api.upper_alarm_tempWstatus.value)),
         // case REQ_MMI_7
         //   If the Monitor Interface Failure is True,
         //   the Alarm Range variable is UNSPECIFIED
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=113 
         (T) -->: (api.interface_failure.value -->: T)
         // END COMPUTE ENSURES timeTriggered
       )
@@ -99,50 +103,35 @@ object Manage_Monitor_Interface_impl_thermostat_monitor_temperature_manage_monit
 
       // INIT Mode
       case Isolette_Data_Model.Monitor_Mode.Init_Monitor_Mode =>
-        //  REQ-MMI-1: If the Manage Monitor Interface mode is INIT,
-        //  the Monitor Status shall be set to Init.
-        assert(monitor_mode == Isolette_Data_Model.Monitor_Mode.Init_Monitor_Mode)
+        //  REQ-MMI-1
         monitor_status = Isolette_Data_Model.Status.Init_Status
 
       // NORMAL Mode
       case Isolette_Data_Model.Monitor_Mode.Normal_Monitor_Mode =>
-        //  REQ-MMI-2: If the Manage Monitor Interface mode is NORMAL,
-        //  the Monitor Status shall be set to On.
-        assert(monitor_mode != Isolette_Data_Model.Monitor_Mode.Init_Monitor_Mode)
+        //  REQ-MMI-2
         monitor_status = Isolette_Data_Model.Status.On_Status
 
       // FAILED Mode
       case Isolette_Data_Model.Monitor_Mode.Failed_Monitor_Mode =>
-        //  REQ-MMI-3: If the Manage Monitor Interface mode is FAILED,
-        //  the Monitor Status shall be set to Failed.
-        assert(monitor_mode != Isolette_Data_Model.Monitor_Mode.Init_Monitor_Mode)
+        //  REQ-MMI-3
         monitor_status = Isolette_Data_Model.Status.Failed_Status
+
+      // COVERAGE NOTE: this final case will be marked as partially covered.  This is due to a scala/MatchError being
+      //   emitted in the byte code as the default case is not handled (i.e. "case _ => // infeasible"). Tipe/Logika
+      //   will emit an "Infeasible pattern matching case" warning if the default case is explicitly handled since
+      //   there is a case clause for every Monitor_Mode value, so we chose to exclude the unneeded default case in
+      //   favor of a warning/error free report from Tipe/Logika
     }
-    assert(((monitor_mode != Isolette_Data_Model.Monitor_Mode.Init_Monitor_Mode)||(monitor_status == Isolette_Data_Model.Status.Init_Status)))
-    assert(((monitor_mode == Isolette_Data_Model.Monitor_Mode.Init_Monitor_Mode)-->:(monitor_status == Isolette_Data_Model.Status.Init_Status)))
     api.put_monitor_status(monitor_status)
 
-    api.logInfo(s"Sent on monitor_status: $monitor_status")
-
-    Deduce(
-      1 #> (api.monitor_status == monitor_status) by Auto,
-      2 #> ((monitor_mode == Isolette_Data_Model.Monitor_Mode.Init_Monitor_Mode)-->:(monitor_status == Isolette_Data_Model.Status.Init_Status)) by Auto,
-      3 #> ((monitor_mode == Isolette_Data_Model.Monitor_Mode.Init_Monitor_Mode)-->:(api.monitor_status == Isolette_Data_Model.Status.Init_Status)) by Auto,
-    )
+    //api.logInfo(s"Sent on monitor_status: $monitor_status")
 
     // =============================================
     //  Set values for Monitor Interface Failure internal variable
     // =============================================
 
-
-    // FIXME: I [JMH] believe that these requirements reflect poor design.
-    //  I don't even see why alarm temperature values should have a status value.
-    //  Input validation should be performed on these values in the operator interface.
-    //  Improper values (i.e., values with bad status), should never even be passed here.
-    //
-
     // The interface_failure status defaults to TRUE, which is the safe modality.
-    var interface_failure: B = true
+    var interface_failure: B = T
 
     // Extract the value status from both the upper and lower alarm range
     val upper_alarm_status: Isolette_Data_Model.ValueStatus.Type = upper.status
@@ -150,24 +139,26 @@ object Manage_Monitor_Interface_impl_thermostat_monitor_temperature_manage_monit
 
     // Set the Monitor Interface Failure value based on the status values of the
     //   upper and lower temperature
-    if (!(upper_alarm_status == Isolette_Data_Model.ValueStatus.Valid) ||
-      !(lower_alarm_status == Isolette_Data_Model.ValueStatus.Valid)) {
-      //  REQ-MMI-4: If the Status attribute of the Lower Alarm Temperature
-      //  or the Upper Alarm Temperature is Invalid,
-      //  the Monitor Interface Failure shall be set to True.
-      interface_failure = true
+    if (upper_alarm_status == Isolette_Data_Model.ValueStatus.Invalid |
+      lower_alarm_status == Isolette_Data_Model.ValueStatus.Invalid) {
+      // COVERAGE NOTE: jacoco coverage reports will indicate branches were missed in the preceding
+      //   condition.  This is due to the bytecode handling possible null object values.  E.g. one check is if
+      //   upper_alarm_status and Isolette_Data_Model.ValueStatus.Invalid are both null in which case they'd be
+      //   equal. Slang ensures the absence of null values and as such NULL is not in its subset of Scala. Therefore
+      //   there is no way to write a valid unit test where null is introduced so these infeasible branches can be ignored
+
+      //  REQ-MMI-4
+      interface_failure = T
     } else {
-      //  REQ-MMI-5: If the Status attribute of the Lower Alarm Temperature
-      //  and the Upper Alarm Temperature is Valid,
-      //  the Monitor Interface Failure shall be set to False.
-      interface_failure = false
+      //  REQ-MMI-5
+      interface_failure = F
     }
 
     // create the appropriately typed value to send on the output port and set the port value
     val interface_failure_flag = Isolette_Data_Model.Failure_Flag_impl(interface_failure)
     api.put_interface_failure(interface_failure_flag)
 
-    api.logInfo(s"Sent on interface_failure: $interface_failure_flag")
+    //api.logInfo(s"Sent on interface_failure: $interface_failure_flag")
 
 
     // =============================================
@@ -175,19 +166,14 @@ object Manage_Monitor_Interface_impl_thermostat_monitor_temperature_manage_monit
     // =============================================
 
     if (!interface_failure) {
-      //  REQ-MMI-6: If the Monitor Interface Failure is False,
-      //  the Alarm Range variable shall be set to the Desired Temperature Range.
+      //  REQ-MMI-6
       api.put_lower_alarm_temp(Isolette_Data_Model.Temp_impl(lower.value))
       api.put_upper_alarm_temp(Isolette_Data_Model.Temp_impl(upper.value))
 
-      api.logInfo(s"Sent on lower_alarm_temp: ${Isolette_Data_Model.Temp_impl(lower.value)}")
-      api.logInfo(s"Sent on upper_alarm_temp: ${Isolette_Data_Model.Temp_impl(upper.value)}")
+      //api.logInfo(s"Sent on lower_alarm_temp: ${Isolette_Data_Model.Temp_impl(lower.value)}")
+      //api.logInfo(s"Sent on upper_alarm_temp: ${Isolette_Data_Model.Temp_impl(upper.value)}")
     } else {
-      //  REQ-MMI-7: If the Monitor Interface Failure is True,
-      //  the Alarm Range variable is UNSPECIFIED.
-
-      //  Generated tests require the outgoing data ports to be populated.  Note
-      //  the actual values placed on the ports does not matter
+      //  REQ-MMI-7
       api.put_lower_alarm_temp(Isolette_Data_Model.Temp_impl(lower.value))
       api.put_upper_alarm_temp(Isolette_Data_Model.Temp_impl(upper.value))
 
@@ -196,11 +182,5 @@ object Manage_Monitor_Interface_impl_thermostat_monitor_temperature_manage_monit
     }
   }
 
-  def activate(api: Manage_Monitor_Interface_impl_Operational_Api): Unit = { }
-
-  def deactivate(api: Manage_Monitor_Interface_impl_Operational_Api): Unit = { }
-
   def finalise(api: Manage_Monitor_Interface_impl_Operational_Api): Unit = { }
-
-  def recover(api: Manage_Monitor_Interface_impl_Operational_Api): Unit = { }
 }

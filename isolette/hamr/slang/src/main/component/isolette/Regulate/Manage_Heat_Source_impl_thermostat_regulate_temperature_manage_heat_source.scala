@@ -27,6 +27,7 @@ object Manage_Heat_Source_impl_thermostat_regulate_temperature_manage_heat_sourc
         // guarantee REQ_MHS_1
         //   If the Regulator Mode is INIT, the Heat Control shall be
         //   set to Off
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=110 
         api.heat_control == Isolette_Data_Model.On_Off.Off
         // END INITIALIZES ENSURES
       )
@@ -43,7 +44,7 @@ object Manage_Heat_Source_impl_thermostat_regulate_temperature_manage_heat_sourc
   //======================================
   // Compute Entry Point
   //======================================
-  def timeTriggered(api: Manage_Heat_Source_impl_Operational_Api): Unit = {
+ def timeTriggered(api: Manage_Heat_Source_impl_Operational_Api): Unit = {
     Contract(
       Requires(
         // BEGIN COMPUTE REQUIRES timeTriggered
@@ -60,15 +61,18 @@ object Manage_Heat_Source_impl_thermostat_regulate_temperature_manage_heat_sourc
         // case REQ_MHS_1
         //   If the Regulator Mode is INIT, the Heat Control shall be
         //   set to Off.
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=110 
         (api.regulator_mode == Isolette_Data_Model.Regulator_Mode.Init_Regulator_Mode) -->: (api.heat_control == Isolette_Data_Model.On_Off.Off),
         // case REQ_MHS_2
         //   If the Regulator Mode is NORMAL and the Current Temperature is less than
         //   the Lower Desired Temperature, the Heat Control shall be set to On.
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=110 
         (api.regulator_mode == Isolette_Data_Model.Regulator_Mode.Normal_Regulator_Mode &
            api.current_tempWstatus.value < api.lower_desired_temp.value) -->: (api.heat_control == Isolette_Data_Model.On_Off.Onn),
         // case REQ_MHS_3
         //   If the Regulator Mode is NORMAL and the Current Temperature is greater than
         //   the Upper Desired Temperature, the Heat Control shall be set to Off.
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=110 
         (api.regulator_mode == Isolette_Data_Model.Regulator_Mode.Normal_Regulator_Mode &
            api.current_tempWstatus.value > api.upper_desired_temp.value) -->: (api.heat_control == Isolette_Data_Model.On_Off.Off),
         // case REQ_MHS_4
@@ -76,12 +80,14 @@ object Manage_Heat_Source_impl_thermostat_regulate_temperature_manage_heat_sourc
         //   Temperature is greater than or equal to the Lower Desired Temperature
         //   and less than or equal to the Upper Desired Temperature, the value of
         //   the Heat Control shall not be changed.
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=110 
         (api.regulator_mode == Isolette_Data_Model.Regulator_Mode.Normal_Regulator_Mode &
            (api.current_tempWstatus.value >= api.lower_desired_temp.value &
              api.current_tempWstatus.value <= api.upper_desired_temp.value)) -->: (api.heat_control == In(lastCmd)),
         // case REQ_MHS_5
         //   If the Regulator Mode is FAILED, the Heat Control shall be
         //   set to Off.
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=111 
         (api.regulator_mode == Isolette_Data_Model.Regulator_Mode.Failed_Regulator_Mode) -->: (api.heat_control == Isolette_Data_Model.On_Off.Off)
         // END COMPUTE ENSURES timeTriggered
       )
@@ -121,6 +127,12 @@ object Manage_Heat_Source_impl_thermostat_regulate_temperature_manage_heat_sourc
       case Isolette_Data_Model.Regulator_Mode.Failed_Regulator_Mode =>
         // REQ-MHS-5
         currentCmd = Isolette_Data_Model.On_Off.Off
+
+      // COVERAGE NOTE: this final case will be marked as partially covered.  This is due to a scala/MatchError being
+      //   emitted in the byte code as the default case is not handled (i.e. "case _ => // infeasible"). Tipe/Logika
+      //   will emit an "Infeasible pattern matching case" warning if the default case is explicitly handled since
+      //   there is a case clause for every Regulator_Mode value, so we chose to exclude the unneeded default case in
+      //   favor of a warning/error free report from Tipe/Logika
     }
 
     // -------------- Set values of output ports ------------------
@@ -131,11 +143,5 @@ object Manage_Heat_Source_impl_thermostat_regulate_temperature_manage_heat_sourc
     lastCmd = currentCmd
   }
 
-  def activate(api: Manage_Heat_Source_impl_Operational_Api): Unit = { }
-
-  def deactivate(api: Manage_Heat_Source_impl_Operational_Api): Unit = { }
-
   def finalise(api: Manage_Heat_Source_impl_Operational_Api): Unit = { }
-
-  def recover(api: Manage_Heat_Source_impl_Operational_Api): Unit = { }
 }

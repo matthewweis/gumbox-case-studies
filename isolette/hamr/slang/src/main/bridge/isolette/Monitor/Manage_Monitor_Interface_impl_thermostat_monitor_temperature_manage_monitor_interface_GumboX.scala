@@ -64,6 +64,7 @@ object Manage_Monitor_Interface_impl_thermostat_monitor_temperature_manage_monit
   /** guarantee REQ_MMI_1
     *   If the Manage Monitor Interface mode is INIT,
     *   the Monitor Status shall be set to Init.
+    *   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=113 
     * @param api_monitor_mode incoming data port
     * @param api_monitor_status outgoing data port
     */
@@ -76,6 +77,7 @@ object Manage_Monitor_Interface_impl_thermostat_monitor_temperature_manage_monit
   /** guarantee REQ_MMI_2
     *   If the Manage Monitor Interface mode is NORMAL,
     *   the Monitor Status shall be set to On
+    *   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=113 
     * @param api_monitor_mode incoming data port
     * @param api_monitor_status outgoing data port
     */
@@ -90,6 +92,7 @@ object Manage_Monitor_Interface_impl_thermostat_monitor_temperature_manage_monit
     *   the Monitor Status shall be set to Failed.
     *   Latency: < Max Operator Response Time
     *   Tolerance: N/A
+    *   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=113 
     * @param api_monitor_mode incoming data port
     * @param api_monitor_status outgoing data port
     */
@@ -103,6 +106,7 @@ object Manage_Monitor_Interface_impl_thermostat_monitor_temperature_manage_monit
     *   If the Status attribute of the Lower Alarm Temperature
     *   or the Upper Alarm Temperature is Invalid,
     *   the Monitor Interface Failure shall be set to True
+    *   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=113 
     * @param api_lower_alarm_tempWstatus incoming data port
     * @param api_upper_alarm_tempWstatus incoming data port
     * @param api_interface_failure outgoing data port
@@ -119,6 +123,7 @@ object Manage_Monitor_Interface_impl_thermostat_monitor_temperature_manage_monit
     *   If the Status attribute of the Lower Alarm Temperature
     *   and the Upper Alarm Temperature is Valid,
     *   the Monitor Interface Failure shall be set to False
+    *   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=113 
     * @param api_lower_alarm_tempWstatus incoming data port
     * @param api_upper_alarm_tempWstatus incoming data port
     * @param api_interface_failure outgoing data port
@@ -134,6 +139,7 @@ object Manage_Monitor_Interface_impl_thermostat_monitor_temperature_manage_monit
   /** guarantee REQ_MMI_6
     *   If the Monitor Interface Failure is False,
     *   the Alarm Range variable shall be set to the Desired Temperature Range
+    *   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=113 
     * @param api_lower_alarm_tempWstatus incoming data port
     * @param api_upper_alarm_tempWstatus incoming data port
     * @param api_interface_failure outgoing data port
@@ -154,6 +160,7 @@ object Manage_Monitor_Interface_impl_thermostat_monitor_temperature_manage_monit
   /** guarantee REQ_MMI_7
     *   If the Monitor Interface Failure is True,
     *   the Alarm Range variable is UNSPECIFIED
+    *   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=113 
     * @param api_interface_failure outgoing data port
     */
   @strictpure def compute_case_REQ_MMI_7(
@@ -191,6 +198,7 @@ object Manage_Monitor_Interface_impl_thermostat_monitor_temperature_manage_monit
     *
     * @param In_lastCmd pre-state state variable
     * @param lastCmd post-state state variable
+    * @param api_current_tempWstatus incoming data port
     * @param api_lower_alarm_tempWstatus incoming data port
     * @param api_monitor_mode incoming data port
     * @param api_upper_alarm_tempWstatus incoming data port
@@ -202,6 +210,7 @@ object Manage_Monitor_Interface_impl_thermostat_monitor_temperature_manage_monit
   @strictpure def compute_CEP_Post (
       In_lastCmd: Isolette_Data_Model.On_Off.Type,
       lastCmd: Isolette_Data_Model.On_Off.Type,
+      api_current_tempWstatus: Isolette_Data_Model.TempWstatus_impl,
       api_lower_alarm_tempWstatus: Isolette_Data_Model.TempWstatus_impl,
       api_monitor_mode: Isolette_Data_Model.Monitor_Mode.Type,
       api_upper_alarm_tempWstatus: Isolette_Data_Model.TempWstatus_impl,
@@ -223,6 +232,7 @@ object Manage_Monitor_Interface_impl_thermostat_monitor_temperature_manage_monit
     compute_CEP_Post(
       In_lastCmd = pre.In_lastCmd,
       lastCmd = post.lastCmd,
+      api_current_tempWstatus = pre.api_current_tempWstatus,
       api_lower_alarm_tempWstatus = pre.api_lower_alarm_tempWstatus,
       api_monitor_mode = pre.api_monitor_mode,
       api_upper_alarm_tempWstatus = pre.api_upper_alarm_tempWstatus,

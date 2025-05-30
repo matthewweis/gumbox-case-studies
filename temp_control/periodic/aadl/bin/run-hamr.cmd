@@ -47,7 +47,8 @@ if(Os.cliArgs.size > 1) {
   Os.exit(1)
 }
 
-val slangOutputDir =  aadlDir.up / "hamr" / "slang"
+val hamrDir =  aadlDir.up / "hamr"
+val slangOutputDir =  hamrDir / "slang"
 
 val packageName = "tc"
 
@@ -60,16 +61,16 @@ val platform: String =
 val codegenArgs = ISZ("hamr", "codegen",
   "--platform", platform,
   "--package-name", packageName,
-  "--output-dir", (aadlDir.up / "hamr" / "slang").string,
-  "--output-c-dir", (aadlDir.up / "hamr" / "c").string,
-  "--camkes-output-dir", (aadlDir.up / "hamr" / "camkes").string,  
+  "--output-dir", hamrDir.value,
+  "--output-c-dir", (hamrDir / "c").string,
+  "--sel4-output-dir", (hamrDir / "camkes").string,  
   "--verbose",
   //"--no-proyek-ive",
   "--run-transpiler",
   "--bit-width", "32", 
   "--max-string-size", "256",
   "--max-array-size", "1",
-  "--aadl-root-dir", aadlDir.string,
+  "--workspace-root-dir", aadlDir.string,
   (aadlDir / ".system").string)
 
 val results = Os.proc(osireum ++ codegenArgs).echo.console.run()

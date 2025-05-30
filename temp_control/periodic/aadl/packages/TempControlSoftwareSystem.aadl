@@ -139,7 +139,7 @@ public
       --  that even though dispatch protocol has changed, we can leave integration constraints the same.             
       integration   
         assume currentTempRange:
-          (currentTemp.degrees >= f32"-70.0") & (currentTemp.degrees <= f32"80.0");
+          (currentTemp.degrees >= f32"-128.6") & (currentTemp.degrees <= f32"134.0");
           
       initialize
          modifies (latestFanCmd);
@@ -191,6 +191,7 @@ public
             guarantee 
               (latestFanCmd == In(latestFanCmd)) & 
               (fanCmd == latestFanCmd);
+         
      **};     
   end TempControlPeriodic;
 

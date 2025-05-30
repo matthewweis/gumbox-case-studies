@@ -1,17 +1,17 @@
 ::/*#! 2> /dev/null                                   #
 @ 2>/dev/null # 2>nul & echo off & goto BOF           #
-if [ -z ${SIREUM_HOME} ]; then                        #
+if [ -z "${SIREUM_HOME}" ]; then                      #
   echo "Please set SIREUM_HOME env var"               #
   exit -1                                             #
 fi                                                    #
-exec ${SIREUM_HOME}/bin/sireum slang run "$0" "$@"    #
+exec "${SIREUM_HOME}/bin/sireum" slang run "$0" "$@"    #
 :BOF
 setlocal
 if not defined SIREUM_HOME (
   echo Please set SIREUM_HOME env var
   exit /B -1
 )
-%SIREUM_HOME%\\bin\\sireum.bat slang run "%0" %*
+"%SIREUM_HOME%\bin\sireum.bat" slang run %0 %*
 exit /B %errorlevel%
 ::!#*/
 // #Sireum
@@ -36,12 +36,13 @@ val files: ISZ[String] = ISZ("../src/main/data/isolette/Isolette_Environment/Hea
                              "../src/main/data/isolette/Isolette_Data_Model/Failure_Flag_impl.scala",
                              "../src/main/data/isolette/Isolette_Data_Model/Monitor_Mode.scala",
                              "../src/main/data/isolette/Base_Types.scala",
-                             "../src/main/data/isolette/Regulate/Manage_Regulator_Interface_impl_thermostat_regulate_temperature_manage_regulator_interface__Containers.scala",
-                             "../src/main/data/isolette/Regulate/Manage_Heat_Source_impl_thermostat_regulate_temperature_manage_heat_source__Containers.scala",
-                             "../src/main/data/isolette/Regulate/Manage_Regulator_Mode_impl_thermostat_regulate_temperature_manage_regulator_mode__Containers.scala",
-                             "../src/main/data/isolette/Monitor/Manage_Monitor_Interface_impl_thermostat_monitor_temperature_manage_monitor_interface__Containers.scala",
-                             "../src/main/data/isolette/Monitor/Manage_Alarm_impl_thermostat_monitor_temperature_manage_alarm__Containers.scala",
-                             "../src/main/data/isolette/Monitor/Manage_Monitor_Mode_impl_thermostat_monitor_temperature_manage_monitor_mode__Containers.scala",
+                             "../src/main/data/isolette/Regulate/Manage_Regulator_Interface_impl_thermostat_regulate_temperature_manage_regulator_interface_Containers.scala",
+                             "../src/main/data/isolette/Regulate/Manage_Heat_Source_impl_thermostat_regulate_temperature_manage_heat_source_Containers.scala",
+                             "../src/main/data/isolette/Regulate/Manage_Regulator_Mode_impl_thermostat_regulate_temperature_manage_regulator_mode_Containers.scala",
+                             "../src/main/data/isolette/Monitor/Manage_Monitor_Interface_impl_thermostat_monitor_temperature_manage_monitor_interface_Containers.scala",
+                             "../src/main/data/isolette/Monitor/Manage_Alarm_impl_thermostat_monitor_temperature_manage_alarm_Containers.scala",
+                             "../src/main/data/isolette/Monitor/Manage_Monitor_Mode_impl_thermostat_monitor_temperature_manage_monitor_mode_Containers.scala",
+                             "../src/main/data/isolette/util/Container.scala",
                              "../src/main/art/art/DataContent.scala",
                              "../src/main/data/isolette/Aux_Types.scala")
 

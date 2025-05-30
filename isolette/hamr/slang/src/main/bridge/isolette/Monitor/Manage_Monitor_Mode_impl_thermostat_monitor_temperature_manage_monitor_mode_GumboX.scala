@@ -11,6 +11,7 @@ object Manage_Monitor_Mode_impl_thermostat_monitor_temperature_manage_monitor_mo
     *
     * guarantee REQ_MMM_1
     *   Upon the first dispatch of the thread, the monitor mode is Init.
+    *   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=114 
     * @param api_monitor_mode outgoing data port
     */
   @strictpure def initialize_REQ_MMM_1 (
@@ -47,18 +48,19 @@ object Manage_Monitor_Mode_impl_thermostat_monitor_temperature_manage_monitor_mo
       lastMonitorMode = post.lastMonitorMode,
       api_monitor_mode = post.api_monitor_mode)
 
-  /** guarantee REQ_MRM_2
+  /** guarantee REQ_MMM_2
     *   If the current mode is Init, then
     *   the mode is set to NORMAL iff the monitor status is true (valid) (see Table A-15), i.e.,
     *   if  NOT (Monitor Interface Failure OR Monitor Internal Failure)
     *   AND Current Temperature.Status = Valid
+    *   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=114 
     * @param In_lastMonitorMode pre-state state variable
     * @param api_current_tempWstatus incoming data port
     * @param api_interface_failure incoming data port
     * @param api_internal_failure incoming data port
     * @param api_monitor_mode outgoing data port
     */
-  @strictpure def compute_case_REQ_MRM_2(
+  @strictpure def compute_case_REQ_MMM_2(
       In_lastMonitorMode: Isolette_Data_Model.Monitor_Mode.Type,
       api_current_tempWstatus: Isolette_Data_Model.TempWstatus_impl,
       api_interface_failure: Isolette_Data_Model.Failure_Flag_impl,
@@ -69,19 +71,20 @@ object Manage_Monitor_Mode_impl_thermostat_monitor_temperature_manage_monitor_mo
           api_current_tempWstatus.status == Isolette_Data_Model.ValueStatus.Valid) -->:
          (api_monitor_mode == Isolette_Data_Model.Monitor_Mode.Normal_Monitor_Mode))
 
-  /** guarantee REQ_MRM_3
+  /** guarantee REQ_MMM_3
     *   If the current Monitor mode is Normal, then
     *   the Monitor mode is set to Failed iff
     *   the Monitor status is false, i.e.,
     *   if  (Monitor Interface Failure OR Monitor Internal Failure)
     *   OR NOT(Current Temperature.Status = Valid)
+    *   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=114 
     * @param In_lastMonitorMode pre-state state variable
     * @param api_current_tempWstatus incoming data port
     * @param api_interface_failure incoming data port
     * @param api_internal_failure incoming data port
     * @param api_monitor_mode outgoing data port
     */
-  @strictpure def compute_case_REQ_MRM_3(
+  @strictpure def compute_case_REQ_MMM_3(
       In_lastMonitorMode: Isolette_Data_Model.Monitor_Mode.Type,
       api_current_tempWstatus: Isolette_Data_Model.TempWstatus_impl,
       api_interface_failure: Isolette_Data_Model.Failure_Flag_impl,
@@ -92,15 +95,16 @@ object Manage_Monitor_Mode_impl_thermostat_monitor_temperature_manage_monitor_mo
           api_current_tempWstatus.status != Isolette_Data_Model.ValueStatus.Valid) -->:
          (api_monitor_mode == Isolette_Data_Model.Monitor_Mode.Failed_Monitor_Mode))
 
-  /** guarantee REQ_MRM_4
+  /** guarantee REQ_MMM_4
     *   If the current mode is Init, then
     *   the mode is set to Failed iff the time during
     *   which the thread has been in Init mode exceeds the
     *   Monitor Init Timeout value.
+    *   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=114 
     * @param In_lastMonitorMode pre-state state variable
     * @param api_monitor_mode outgoing data port
     */
-  @strictpure def compute_case_REQ_MRM_4(
+  @strictpure def compute_case_REQ_MMM_4(
       In_lastMonitorMode: Isolette_Data_Model.Monitor_Mode.Type,
       api_monitor_mode: Isolette_Data_Model.Monitor_Mode.Type): B =
     (In_lastMonitorMode == Isolette_Data_Model.Monitor_Mode.Init_Monitor_Mode) -->:
@@ -120,9 +124,9 @@ object Manage_Monitor_Mode_impl_thermostat_monitor_temperature_manage_monitor_mo
       api_interface_failure: Isolette_Data_Model.Failure_Flag_impl,
       api_internal_failure: Isolette_Data_Model.Failure_Flag_impl,
       api_monitor_mode: Isolette_Data_Model.Monitor_Mode.Type): B =
-    compute_case_REQ_MRM_2(In_lastMonitorMode, api_current_tempWstatus, api_interface_failure, api_internal_failure, api_monitor_mode) &
-    compute_case_REQ_MRM_3(In_lastMonitorMode, api_current_tempWstatus, api_interface_failure, api_internal_failure, api_monitor_mode) &
-    compute_case_REQ_MRM_4(In_lastMonitorMode, api_monitor_mode)
+    compute_case_REQ_MMM_2(In_lastMonitorMode, api_current_tempWstatus, api_interface_failure, api_internal_failure, api_monitor_mode) &
+    compute_case_REQ_MMM_3(In_lastMonitorMode, api_current_tempWstatus, api_interface_failure, api_internal_failure, api_monitor_mode) &
+    compute_case_REQ_MMM_4(In_lastMonitorMode, api_monitor_mode)
 
   /** CEP-Post: Compute Entrypoint Post-Condition for manage_monitor_mode
     *

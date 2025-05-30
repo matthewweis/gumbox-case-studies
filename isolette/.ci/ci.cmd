@@ -34,7 +34,11 @@ if(result == 0) {
 }
 
 if(result == 0) {
-    result = proc"$sireum slang run ${homeDir / "hamr" / "slang" / "bin" / "run-demo-jvm.cmd"}".console.echo.run().exitCode
+    //result = proc"$sireum slang run ${homeDir / "hamr" / "slang" / "bin" / "run-demo-jvm.cmd"}".console.echo.run().exitCode
+}
+
+if(result == 0) {
+    result = proc"$sireum proyek test ${homeDir / "hamr" / "slang" }".console.echo.run().exitCode
 }
 
 if(result == 0) {

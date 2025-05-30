@@ -1,17 +1,17 @@
 ::/*#! 2> /dev/null                                   #
 @ 2>/dev/null # 2>nul & echo off & goto BOF           #
-if [ -z ${SIREUM_HOME} ]; then                        #
+if [ -z "${SIREUM_HOME}" ]; then                      #
   echo "Please set SIREUM_HOME env var"               #
   exit -1                                             #
 fi                                                    #
-exec ${SIREUM_HOME}/bin/sireum slang run "$0" "$@"    #
+exec "${SIREUM_HOME}/bin/sireum" slang run "$0" "$@"    #
 :BOF
 setlocal
 if not defined SIREUM_HOME (
   echo Please set SIREUM_HOME env var
   exit /B -1
 )
-%SIREUM_HOME%\\bin\\sireum.bat slang run "%0" %*
+"%SIREUM_HOME%\bin\sireum.bat" slang run %0 %*
 exit /B %errorlevel%
 ::!#*/
 // #Sireum
@@ -31,10 +31,11 @@ val files: ISZ[String] = ISZ("../src/main/data/tc/TempSensor/Temperature_i.scala
                              "../src/main/data/tc/Base_Types.scala",
                              "../src/main/component/tc/GUMBO_Definitions/GUMBO__Library.scala",
                              "../src/main/component/tc/TempSensor/GUMBO__Library.scala",
-                             "../src/main/data/tc/TempSensor/TempSensorPeriodic_p_tcproc_tempSensor__Containers.scala",
-                             "../src/main/data/tc/CoolingFan/FanPeriodic_p_tcproc_fan__Containers.scala",
-                             "../src/main/data/tc/TempControlSoftwareSystem/TempControlPeriodic_p_tcproc_tempControl__Containers.scala",
-                             "../src/main/data/tc/TempControlSoftwareSystem/OperatorInterfacePeriodic_p_tcproc_operatorInterface__Containers.scala",
+                             "../src/main/data/tc/TempSensor/TempSensorPeriodic_p_tcproc_tempSensor_Containers.scala",
+                             "../src/main/data/tc/CoolingFan/FanPeriodic_p_tcproc_fan_Containers.scala",
+                             "../src/main/data/tc/TempControlSoftwareSystem/TempControlPeriodic_p_tcproc_tempControl_Containers.scala",
+                             "../src/main/data/tc/TempControlSoftwareSystem/OperatorInterfacePeriodic_p_tcproc_operatorInterface_Containers.scala",
+                             "../src/main/data/tc/util/Container.scala",
                              "../src/main/art/art/DataContent.scala",
                              "../src/main/data/tc/Aux_Types.scala")
 

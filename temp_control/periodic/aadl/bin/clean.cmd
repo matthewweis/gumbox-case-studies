@@ -26,6 +26,7 @@ val toKeep = ops.ISZOps(ISZ(
   (slangDir / ".idea"),
   (slangDir / "src" / "main" / "component"), // contains user code
   (slangDir / "src" / "test" / "bridge"), // contains user code
+  (slangDir / "src" / "test" / "util" / "tc" / "DSC_RecordUnsatPre.scala"),
   (slangDir / "src" / "test" / "util" / "tc" / "RecordUnsatPre.scala"),
   (slangDir / "src" / "test" / "util" / "tc" / "Reporter_Ext.scala"),
 ))

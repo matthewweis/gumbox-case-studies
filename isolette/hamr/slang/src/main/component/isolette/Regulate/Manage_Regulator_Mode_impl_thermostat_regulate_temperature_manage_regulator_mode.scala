@@ -8,9 +8,6 @@ import isolette._
 // This file will not be overwritten so is safe to edit
 object Manage_Regulator_Mode_impl_thermostat_regulate_temperature_manage_regulator_mode {
 
-  // BEGIN FUNCTIONS
-  @strictpure def ROUND(num: Base_Types.Float_32): Base_Types.Float_32 = num
-  // END FUNCTIONS
   // BEGIN STATE VARS
   var lastRegulatorMode: Isolette_Data_Model.Regulator_Mode.Type = Isolette_Data_Model.Regulator_Mode.byOrdinal(0).get
   // END STATE VARS
@@ -25,15 +22,15 @@ object Manage_Regulator_Mode_impl_thermostat_regulate_temperature_manage_regulat
         // BEGIN INITIALIZES ENSURES
         // guarantee REQ_MRM_1
         //   The initial mode of the regular is INIT
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=109 
         api.regulator_mode == Isolette_Data_Model.Regulator_Mode.Init_Regulator_Mode
         // END INITIALIZES ENSURES
       )
     )
-    // example api usage
     lastRegulatorMode = Isolette_Data_Model.Regulator_Mode.Init_Regulator_Mode
     api.put_regulator_mode(lastRegulatorMode)
 
-    api.logInfo(s"Sent on regulator_mode: $lastRegulatorMode")
+    //api.logInfo(s"Sent on regulator_mode: $lastRegulatorMode")
   }
 
   def timeTriggered(api: Manage_Regulator_Mode_impl_Operational_Api): Unit = {
@@ -47,6 +44,7 @@ object Manage_Regulator_Mode_impl_thermostat_regulate_temperature_manage_regulat
         //   the regulator mode is set to NORMAL iff the regulator status is valid (see Table A-10), i.e.,
         //     if NOT (Regulator Interface Failure OR Regulator Internal Failure)
         //        AND Current Temperature.Status = Valid
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=109 
         (In(lastRegulatorMode) == Isolette_Data_Model.Regulator_Mode.Init_Regulator_Mode) -->: ((!(api.interface_failure.value || api.internal_failure.value) &&
            api.current_tempWstatus.status == Isolette_Data_Model.ValueStatus.Valid) -->:
           (api.regulator_mode == Isolette_Data_Model.Regulator_Mode.Normal_Regulator_Mode &&
@@ -60,6 +58,7 @@ object Manage_Regulator_Mode_impl_thermostat_regulate_temperature_manage_regulat
         //              (Regulator Interface Failure OR Regulator Internal Failure)
         //              OR NOT(Current Temperature.Status = Valid)
         //          )
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=109 
         (In(lastRegulatorMode) == Isolette_Data_Model.Regulator_Mode.Normal_Regulator_Mode) -->: ((!(api.interface_failure.value || api.internal_failure.value) &&
            api.current_tempWstatus.status == Isolette_Data_Model.ValueStatus.Valid) -->:
           (api.regulator_mode == Isolette_Data_Model.Regulator_Mode.Normal_Regulator_Mode &&
@@ -71,6 +70,7 @@ object Manage_Regulator_Mode_impl_thermostat_regulate_temperature_manage_regulat
         //   the regulator status is false, i.e.,
         //      if  (Regulator Interface Failure OR Regulator Internal Failure)
         //          OR NOT(Current Temperature.Status = Valid)
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=109 
         (In(lastRegulatorMode) == Isolette_Data_Model.Regulator_Mode.Normal_Regulator_Mode) -->: (((api.interface_failure.value || api.internal_failure.value) &&
            api.current_tempWstatus.status != Isolette_Data_Model.ValueStatus.Valid) -->:
           (api.regulator_mode == Isolette_Data_Model.Regulator_Mode.Failed_Regulator_Mode &&
@@ -82,6 +82,7 @@ object Manage_Regulator_Mode_impl_thermostat_regulate_temperature_manage_regulat
         //   the regulator status is false, i.e.,
         //          if  (Regulator Interface Failure OR Regulator Internal Failure)
         //          OR NOT(Current Temperature.Status = Valid)
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=109
         (In(lastRegulatorMode) == Isolette_Data_Model.Regulator_Mode.Init_Regulator_Mode) -->: (((api.interface_failure.value || api.internal_failure.value) &&
            api.current_tempWstatus.status != Isolette_Data_Model.ValueStatus.Valid) -->:
           (api.regulator_mode == Isolette_Data_Model.Regulator_Mode.Failed_Regulator_Mode &&
@@ -90,6 +91,7 @@ object Manage_Regulator_Mode_impl_thermostat_regulate_temperature_manage_regulat
         //   'maintaining FAIL, FAIL to FAIL'
         //   If the current regulator mode is Failed, then
         //   the regulator mode remains in the Failed state and the LastRegulator mode remains Failed.REQ-MRM-Maintain-Failed
+        //   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=109
         (In(lastRegulatorMode) == Isolette_Data_Model.Regulator_Mode.Failed_Regulator_Mode) -->: (api.regulator_mode == Isolette_Data_Model.Regulator_Mode.Failed_Regulator_Mode &&
           lastRegulatorMode == Isolette_Data_Model.Regulator_Mode.Failed_Regulator_Mode)
         // END COMPUTE ENSURES timeTriggered
@@ -107,36 +109,30 @@ object Manage_Regulator_Mode_impl_thermostat_regulate_temperature_manage_regulat
       api.get_interface_failure().get
 
     val internal_failure: Isolette_Data_Model.Failure_Flag_impl =
-       api.get_interface_failure().get
-
-    //==============================================================================
-
+      api.get_internal_failure().get
 
     // determine regulator status as specified in FAA REMH Table A-10
     //  regulator_status = NOT (Monitor Interface Failure OR Monitor Internal Failure)
     //                          AND Current Temperature.Status = Valid
     val regulator_status: B =
-    (!(interface_failure.value || internal_failure.value)
-      && (current_temperature_status == Isolette_Data_Model.ValueStatus.Valid))
+      (!(interface_failure.value || internal_failure.value)
+        && (current_temperature_status == Isolette_Data_Model.ValueStatus.Valid))
+
+    // COVERAGE NOTE: jacoco coverage reports will indicate at least 3 of 6 branches were missed in the preceding
+    //   expression.  This is due to the bytecode handling possible null object values.  E.g. one check is if
+    //   current_tempWstatus and Isolette_Data_Model.ValueStatus.Valid are both null in which case they'd be
+    //   equal. Slang ensures the absence of null values and as such NULL is not in its subset of Scala. Therefore
+    //   there is no way to write a valid unit test where null is introduced so these infeasible branches can be ignored
 
     lastRegulatorMode match {
 
       // Transitions from INIT Mode
       case Isolette_Data_Model.Regulator_Mode.Init_Regulator_Mode =>
-
-        // REQ-MRM-2: If the current regulator mode is Init, then
-        //   the regulator mode is set to NORMAL iff the regulator status is true, i.e.,
-        //     if  NOT (Monitor Interface Failure OR Monitor Internal Failure)
-        //         AND Current Temperature.Status = Valid
         if (regulator_status) {
+          // REQ-MRM-2
           lastRegulatorMode = Isolette_Data_Model.Regulator_Mode.Normal_Regulator_Mode
-        }
-
-        // REQ-MRM-3: If the current regulator mode is Init, then
-        //     the regulator mode is set to Failed iff the time during
-        //     which the thread has been in Init mode exceeds the
-        //     Regulator Init Timeout value.
-        if (!regulator_status) { //&& timeout_condition_satisfied() //TODO TIMEOUT CONDITION TO BE CONSIDERED IN FAILED REGULATOR MODE SETTING UNDER INIT
+        } else {
+          // REQ-MRM-3
           lastRegulatorMode = Isolette_Data_Model.Regulator_Mode.Failed_Regulator_Mode
         }
 
@@ -144,32 +140,26 @@ object Manage_Regulator_Mode_impl_thermostat_regulate_temperature_manage_regulat
 
       // Transitions from NORMAL Mode
       case Isolette_Data_Model.Regulator_Mode.Normal_Regulator_Mode =>
-
-        // REQ-MRM-4: If the current regulator mode is Normal, then
-        //     the regulator mode is set to Failed iff
-        //     the regulator status is false, i.e.,
-        //       if  (Monitor Interface Failure OR Monitor Internal Failure)
-        //           OR NOT(Current Temperature.Status = Valid)
-
         if (!regulator_status) {
+          // REQ-MRM-4
           lastRegulatorMode = Isolette_Data_Model.Regulator_Mode.Failed_Regulator_Mode
         }
 
       // Transitions from FAILED Mode (do nothing -- system must be rebooted)
-      case Isolette_Data_Model.Regulator_Mode.Failed_Regulator_Mode => //UNUSED CASE CONFIRMED BY LOGIKA, GOOD OUTCOME
-      // do nothing
+      case Isolette_Data_Model.Regulator_Mode.Failed_Regulator_Mode => {
+        // do nothing
+
+        // COVERAGE NOTE: this final case will be marked as partially covered.  This is due to a scala/MatchError being
+        //   emitted in the byte code as the default case is not handled (i.e. "case _ => // infeasible"). Tipe/Logika
+        //   will emit an "Infeasible pattern matching case" warning if the default case is explicitly handled since
+        //   there is a case clause for every Regulator_Mode value, so we chose to exclude the unneeded default case in
+        //   favor of a warning/error free report from Tipe/Logika
+      }
     }
 
     api.put_regulator_mode(lastRegulatorMode)
 
-    api.logInfo(s"Sent on regulator_mode: $lastRegulatorMode")
+    //api.logInfo(s"Sent on regulator_mode: $lastRegulatorMode")
   }
-
-  def activate(api: Manage_Regulator_Mode_impl_Operational_Api): Unit = { }
-
-  def deactivate(api: Manage_Regulator_Mode_impl_Operational_Api): Unit = { }
-
   def finalise(api: Manage_Regulator_Mode_impl_Operational_Api): Unit = { }
-
-  def recover(api: Manage_Regulator_Mode_impl_Operational_Api): Unit = { }
 }

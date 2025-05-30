@@ -21,6 +21,7 @@ object Manage_Heat_Source_impl_thermostat_regulate_temperature_manage_heat_sourc
     * guarantee REQ_MHS_1
     *   If the Regulator Mode is INIT, the Heat Control shall be
     *   set to Off
+    *   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=110 
     * @param api_heat_control outgoing data port
     */
   @strictpure def initialize_REQ_MHS_1 (
@@ -133,6 +134,7 @@ object Manage_Heat_Source_impl_thermostat_regulate_temperature_manage_heat_sourc
   /** guarantee REQ_MHS_1
     *   If the Regulator Mode is INIT, the Heat Control shall be
     *   set to Off.
+    *   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=110 
     * @param api_regulator_mode incoming data port
     * @param api_heat_control outgoing data port
     */
@@ -145,6 +147,7 @@ object Manage_Heat_Source_impl_thermostat_regulate_temperature_manage_heat_sourc
   /** guarantee REQ_MHS_2
     *   If the Regulator Mode is NORMAL and the Current Temperature is less than
     *   the Lower Desired Temperature, the Heat Control shall be set to On.
+    *   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=110 
     * @param api_current_tempWstatus incoming data port
     * @param api_lower_desired_temp incoming data port
     * @param api_regulator_mode incoming data port
@@ -162,6 +165,7 @@ object Manage_Heat_Source_impl_thermostat_regulate_temperature_manage_heat_sourc
   /** guarantee REQ_MHS_3
     *   If the Regulator Mode is NORMAL and the Current Temperature is greater than
     *   the Upper Desired Temperature, the Heat Control shall be set to Off.
+    *   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=110 
     * @param api_current_tempWstatus incoming data port
     * @param api_regulator_mode incoming data port
     * @param api_upper_desired_temp incoming data port
@@ -181,6 +185,7 @@ object Manage_Heat_Source_impl_thermostat_regulate_temperature_manage_heat_sourc
     *   Temperature is greater than or equal to the Lower Desired Temperature
     *   and less than or equal to the Upper Desired Temperature, the value of
     *   the Heat Control shall not be changed.
+    *   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=110 
     * @param In_lastCmd pre-state state variable
     * @param api_current_tempWstatus incoming data port
     * @param api_lower_desired_temp incoming data port
@@ -203,6 +208,7 @@ object Manage_Heat_Source_impl_thermostat_regulate_temperature_manage_heat_sourc
   /** guarantee REQ_MHS_5
     *   If the Regulator Mode is FAILED, the Heat Control shall be
     *   set to Off.
+    *   http://pub.santoslab.org/high-assurance/module-requirements/reading/FAA-DoT-Requirements-AR-08-32.pdf#page=111 
     * @param api_regulator_mode incoming data port
     * @param api_heat_control outgoing data port
     */

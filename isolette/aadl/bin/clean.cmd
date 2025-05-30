@@ -28,6 +28,7 @@ val toKeep = ops.ISZOps(ISZ(
   (slangDir / "bin" / "transpile-cust.cmd"),
   (slangDir / "src" / "main" / "component"),
   (slangDir / "src" / "test" / "bridge"),
+  (slangDir / "src" / "test" / "util" / "isolette" / "DSC_RecordUnsatPre.scala"),
   (slangDir / "src" / "test" / "util" / "isolette" / "RecordUnsatPre.scala"),
   (slangDir / "src" / "test" / "util" / "isolette" / "Reporter_Ext.scala"),
 ))

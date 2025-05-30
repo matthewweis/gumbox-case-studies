@@ -63,7 +63,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: kekinian\bin\win\osate
-          key: ${{ runner.os }}-${{ hashFiles('jvm\src\main\resources\phantom_versions.properties') }}-osate
+          key: ${{ runner.os }}-${{ hashFiles('kekinian\hamr\codegen\jvm\src\main\resources\phantom_versions.properties') }}-osate
       - name: Check LongPathsEnabled
         run: |
           (Get-ItemProperty "HKLM:System\CurrentControlSet\Control\FileSystem").LongPathsEnabled
@@ -106,7 +106,9 @@ jobs:
 
           set PATH=%SIREUM_HOME%\bin;%PATH%
       
-          call %SIREUM_HOME%\bin\install\fmide.cmd --verbose || goto :error
+          set OSATE_HOME=%SIREUM_HOME%\bin\win\osate
+
+          call %SIREUM_HOME%\hamr\codegen\bin\build.cmd install-osate-gumbo || goto :error
 
           call .ci\test.cmd || goto :error
                     

@@ -15,7 +15,7 @@ object DSC_RecordUnsatPre {
     * @param testVector the JSON serialized test vector
     */
   def report(testVector: String): Unit = {
-
+    Reporter.report(testVector)
   }
 
 }
