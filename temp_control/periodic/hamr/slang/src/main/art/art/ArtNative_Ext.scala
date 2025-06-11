@@ -79,11 +79,10 @@ object ArtNative_Ext {
   //   S y s t e m     S t a t e
   //================================================================
 
-  // todo infrastructure code used to hold DataContent, looks like we want ArtMessage now? Added new QueueConcMap wrapper
-  val inInfrastructurePorts: MMap[Z, Dequeue[ArtMessage]] = concMap()
-  val outInfrastructurePorts: MMap[Z, Enqueue[ArtMessage]] = concMap()
-  val inPortVariables: MMap[Z, Queue[ArtMessage]] = concMap()
-  val outPortVariables: MMap[Z, Queue[ArtMessage]] = concMap()
+  val inInfrastructurePorts: MMap[Z, ArtMessage] = concMap()
+  val outInfrastructurePorts: MMap[Z, ArtMessage] = concMap()
+  val inPortVariables: MMap[Z, ArtMessage] = concMap()
+  val outPortVariables: MMap[Z, ArtMessage] = concMap()
 
 
   // Initializes system state in preparation for execution of initialize, compute, and finalize phases
@@ -91,7 +90,7 @@ object ArtNative_Ext {
   // set up and cleared between runs, but does not include things related to system architecture or platform
   // infrastructure that could persist between runs.
 
-  def setUpSystemState(registry: InfrastructureRegistry): Unit = {
+  def setUpSystemState(): Unit = {
     inInfrastructurePorts.clear()
     inPortVariables.clear()
     outPortVariables.clear()
@@ -100,62 +99,7 @@ object ArtNative_Ext {
     // cancel pending ArtTimer callbacks (also done after a test completes)
     ArtTimer_Ext.scheduledCallbacks.keys.foreach(ArtTimer_Ext.cancel)
 
-    // setup queues for infrastructurePorts and portVariables
-    setUpPortQueues(registry)
-
     //scheduler.initialize()
-  }
-
-  def setUpPortQueues(registry: InfrastructureRegistry): Unit = {
-    setUpPortVariableQueues()
-    setUpInfrastructurePortQueues(registry)
-  }
-
-  def initPortVariable(port: UPort): Unit = {
-    // TODO -- where should this eventually be configured? Should probably always be same type as matching infrastructure?
-    port.mode match {
-      case PortMode.EventIn => inPortVariables(port.id.toZ) = Queues.createSingletonEventQueue()
-      case PortMode.EventOut => outPortVariables(port.id.toZ) = Queues.createSingletonEventQueue()
-      case PortMode.DataIn => inPortVariables(port.id.toZ) = Queues.createSingletonDataQueue()
-      case PortMode.DataOut => outPortVariables(port.id.toZ) = Queues.createSingletonDataQueue()
-    }
-  }
-
-  def setUpPortVariableQueues(): Unit = {
-    Art.ports.foreach((maybePort: Option[art.UPort]) => {
-      maybePort match {
-        case Some(port) => initPortVariable(port)
-        case None() => logError("ArtNative", "WARNING: A port was empty after Art init.")
-      }
-    })
-  }
-
-  // todo temp variable pending discussion about resetting infrastructure queues
-  var portRegistryTestRef: Option[InfrastructureRegistry] = None()
-  def setUpInfrastructurePortQueues(registry: InfrastructureRegistry): Unit = {
-    portRegistryTestRef = Some(registry)
-    Art.ports.foreach((maybePort: Option[art.UPort]) => {
-      maybePort match {
-        case Some(port) => {
-          // infrastructure
-          port.mode match {
-            case PortMode.EventIn | PortMode.DataIn => {
-              val in: Option[Dequeue[DataContent]] = registry.inboundPortQueues(port.id.toZ)
-              if (in.nonEmpty) {
-                inInfrastructurePorts(port.id.toZ) = new Queues_Ext.InfrastructureInPortQueueWrapper(port.id, in.get)
-              }
-            }
-            case PortMode.EventOut | PortMode.DataOut => {
-              val out: Option[Enqueue[DataContent]] = registry.outboundPortQueues(port.id.toZ)
-              if (out.nonEmpty) {
-                outInfrastructurePorts(port.id.toZ) = new Queues_Ext.InfrastructureOutPortQueueWrapper(port.id, out.get)
-              }
-            }
-          }
-        }
-        case None() => logError("ArtNative", "WARNING: A port was empty after Art init.")
-      }
-    })
   }
 
   def tearDownSystemState(): Unit = {
@@ -163,12 +107,6 @@ object ArtNative_Ext {
     inPortVariables.clear()
     outPortVariables.clear()
     outInfrastructurePorts.clear()
-
-    setUpPortVariableQueues()
-    portRegistryTestRef match {
-      case Some(registry: InfrastructureRegistry) => setUpInfrastructurePortQueues(registry)
-      case None() => println("[DEBUG] tearDownSystemState skipped infrastructure port setup")
-    }
 
     // cancel pending ArtTimer callbacks (also done after a test completes)
     ArtTimer_Ext.scheduledCallbacks.keys.foreach(ArtTimer_Ext.cancel)
@@ -184,29 +122,23 @@ object ArtNative_Ext {
   def receiveInput(eventPortIds: ISZ[Art.PortId], dataPortIds: ISZ[Art.PortId]): Unit = {
     // remove any old events from previous dispatch
     for (portId <- eventPortIds if inPortVariables.contains(portId.toZ)) {
-      inPortVariables(portId.toZ).offer(null)
+      inPortVariables -= portId.toZ
     }
 
     // transfer received data/events from the infrastructure ports to the port variables
     for (portId <- eventPortIds) {
       inInfrastructurePorts.get(portId.toZ) match {
-        case scala.Some(queueConsumer: Dequeue[ArtMessage]) =>
-          queueConsumer.drain((msg: ArtMessage) => {
-            println(s"Copying from infrastructure to local port=$portId, data=$msg")
-            inPortVariables(portId.toZ).offer(msg)
-          })
+        case scala.Some(data) =>
+          inInfrastructurePorts -= portId.toZ // dequeue from infrastructure port
+          inPortVariables(portId.toZ) = data // when we shift to queue size greater than 1, we would enqueue here
         case _ =>
       }
     }
     for (portId <- dataPortIds) {
       inInfrastructurePorts.get(portId.toZ) match {
-        case scala.Some(queueConsumer: Dequeue[ArtMessage]) => {
-          // todo decide logic for non-single queues
-          queueConsumer.drain((msg: ArtMessage) => {
-            println(s"Copying from infrastructure to local port=$portId, data=$msg")
-            inPortVariables(portId.toZ).offer(msg)
-          })
-        }
+        case scala.Some(data) =>
+          // for data ports, we don't dequeue from infrastastructure ports
+          inPortVariables(portId.toZ) = data
         case _ =>
       }
     }
@@ -214,7 +146,7 @@ object ArtNative_Ext {
 
   def putValue(portId: Art.PortId, data: DataContent): Unit = {
     // wrap the Art.DataContent value into an ArtMessage with time stamps
-    outPortVariables(portId.toZ).offer(ArtMessage(data = data, srcPortId = Some(portId), putValueTimestamp = Art.time()))
+    outPortVariables(portId.toZ) = ArtMessage(data = data, srcPortId = Some(portId), putValueTimestamp = Art.time())
   }
 
   def getValue(portId: Art.PortId): Option[DataContent] = {
@@ -223,7 +155,7 @@ object ArtNative_Ext {
     // to Art.DataContent (the "top"/union data type supported by Art.
     // The projecting preserves the option of structure of ArtMessage value.
     val data = inPortVariables.get(portId.toZ) match {
-      case scala.Some(queue: Queue[ArtMessage]) => queue.peek().map((msg: ArtMessage) => msg.data)
+      case scala.Some(v) => org.sireum.Some(v.data)
       case _ => org.sireum.None[DataContent]()
     }
     return data
@@ -238,21 +170,34 @@ object ArtNative_Ext {
   def sendOutput(eventPortIds: ISZ[Art.PortId], dataPortIds: ISZ[Art.PortId]): Unit = { // SEND_OUTPUT
     for (srcPortId <- eventPortIds ++ dataPortIds) {
       outPortVariables.get(srcPortId.toZ) match {
-        case scala.Some(queueConsumer: Queue[ArtMessage]) =>
-          // todo send on emission as well as receive
+        case scala.Some(msg) =>
+          // move payload from out port port variables to the out infrastructure ports
+          outInfrastructurePorts(srcPortId.toZ) = outPortVariables(srcPortId.toZ)
+          outPortVariables -= srcPortId.toZ
 
-          outInfrastructurePorts.get(srcPortId.toZ) match {
-            case scala.Some(queueProducer: Enqueue[ArtMessage]) => queueConsumer.drain((msg: ArtMessage) => queueProducer.offer(msg))
-            case _ => //println(s"WARNING: no infrastructure out defined for port $srcPortId")
+          // simulate sending msg via transport middleware
+          for (dstPortId <- Art.connections(srcPortId).elements) {
+
+            val _msg = msg.copy(dstPortId = Some(dstPortId), sendOutputTimestamp = Art.time())
+
+            Art.port(dstPortId).mode match {
+              // right now, there is no difference in the logic between data and event ports,
+              // but keep the code separate for future refactorings
+              case PortMode.DataIn | PortMode.DataOut =>
+                inInfrastructurePorts(dstPortId.toZ) = _msg
+              case PortMode.EventIn | PortMode.EventOut =>
+                inInfrastructurePorts(dstPortId.toZ) = _msg
+            }
+
+            _msg.dstArrivalTimestamp = Art.time()
+
+            ArtDebug_Ext.outputCallback(srcPortId, dstPortId, _msg.data, _msg.dstArrivalTimestamp)
           }
+
+          // payload delivered so remove it from out infrastructure port
+          outInfrastructurePorts -= srcPortId.toZ
         case _ =>
       }
-
-      // simulate sending msg via transport middleware
-      // todo no longer need to simulate transport, but what about calling ArgDebug out?
-
-      // payload delivered so remove it from out infrastructure port
-      // todo payload is no longer necessarily delivered at end of this function. Should this be delayed for after an ack?
     }
   }
 
@@ -270,14 +215,12 @@ object ArtNative_Ext {
     // iterate through inPortIds and clear the value of each corresponding port variable
     for (portId <- inPortIds) {
       inPortVariables -= portId.toZ;
-      initPortVariable(Art.port(portId))
     }
     // compute outPortIds
     val outPortIds = Art.bridges(bridgeId.toZ).get.ports.eventOuts.elements.map(_.id) ++ Art.bridges(bridgeId.toZ).get.ports.dataOuts.elements.map(_.id)
     // iterate through outPortIds and clear the value of each corresponding port variable
     for (portId <- outPortIds) {
       outPortVariables -= portId.toZ
-      initPortVariable(Art.port(portId))
     }
   }
 
@@ -305,7 +248,7 @@ object ArtNative_Ext {
       case DispatchPropertyProtocol.Periodic(_) => return T
       case DispatchPropertyProtocol.Sporadic(minRate) =>
         return Art.bridges(bridgeId.toZ).get.ports.eventIns.elements.exists(
-          port => inInfrastructurePorts.contains(port.id.toZ) && !inInfrastructurePorts(port.id.toZ).isEmpty())
+          port => inInfrastructurePorts.contains(port.id.toZ))
     }
   }
 
@@ -316,10 +259,7 @@ object ArtNative_Ext {
       case Periodic(_) => TimeTriggered()
       case Sporadic(_) =>
         // get ids for non-empty input event ports
-        val portIds = ISZ[Art.PortId](Art.bridge(bridgeId).ports.eventIns.elements.map(_.id).filter(it => inInfrastructurePorts.get(it.toZ) match {
-          case scala.Some(consumer) => !consumer.isEmpty()
-          case _ => F
-        }): _*)
+        val portIds = ISZ[Art.PortId](Art.bridges(bridgeId.toZ).get.ports.eventIns.map((u: UPort) => u.id).elements.filter((i: Art.PortId) => inInfrastructurePorts.get(i.toZ).nonEmpty): _*)
         val urgentFifo: Seq[Art.PortId] = portIds.map((pid: Art.PortId) => Art.port(pid)).elements.sortWith { // reverse sort
           // sorting function to make prioritized sequence of event port ids
           //   compare p1 to p2  (p1 represents the port to process earlier, i.e., should have priority)
@@ -329,11 +269,11 @@ object ArtNative_Ext {
             // if p1 has a strictly greater urgency, it comes before p2
             else if (p1.urgency > p2.urgency) T
             // if p1 and p2 have the same urgency, the ordering is determined by arrival timestamps
-            else inInfrastructurePorts(p1.id.toZ).peek().map((msg: ArtMessage) => msg.dstArrivalTimestamp).getOrElseEager(S64.Max) < inInfrastructurePorts(p2.id.toZ).peek().map((msg: ArtMessage) => msg.dstArrivalTimestamp).getOrElseEager(S64.Max)
+            else inInfrastructurePorts(p1.id.toZ).dstArrivalTimestamp < inInfrastructurePorts(p2.id.toZ).dstArrivalTimestamp
           case (_: UrgentPort[_], _: Port[_]) => T // urgent ports take precedence
           case (_: Port[_], _: UrgentPort[_]) => F // urgent ports take precedence
           case (p1: Port[_], p2: Port[_]) =>
-            inInfrastructurePorts(p1.id.toZ).peek().map((msg: ArtMessage) => msg.dstArrivalTimestamp).getOrElseEager(S64.Max) < inInfrastructurePorts(p2.id.toZ).peek().map((msg: ArtMessage) => msg.dstArrivalTimestamp).getOrElseEager(S64.Max)
+            inInfrastructurePorts(p1.id.toZ).dstArrivalTimestamp < inInfrastructurePorts(p2.id.toZ).dstArrivalTimestamp
         }.map(_.id)
         EventTriggered(ISZ[Art.PortId](urgentFifo: _*))
     }
@@ -397,12 +337,6 @@ object ArtNative_Ext {
     outPortVariables.clear()
     outInfrastructurePorts.clear()
 
-    setUpPortVariableQueues()
-    portRegistryTestRef match {
-      case Some(registry: InfrastructureRegistry) => setUpInfrastructurePortQueues(registry)
-      case None() => println("[DEBUG] initTest skipped infrastructure port setup (due to non-system tests)")
-    }
-
     // cancel pending ArtTimer callbacks (also done after a test completes)
     ArtTimer_Ext.scheduledCallbacks.keys.foreach(ArtTimer_Ext.cancel)
 
@@ -453,10 +387,10 @@ object ArtNative_Ext {
 
   // JH: Refactored
   //   add system test capability
-  def initSystemTest(services: IS[Art.PortId, Option[PortServiceBundle]], scheduler: Scheduler): Unit = {
+  def initSystemTest(scheduler: Scheduler): Unit = {
     Art.setUpArchitecture()
     Art.setUpPlatform()
-    Art.setUpSystemState(services, scheduler)
+    Art.setUpSystemState(scheduler)
     logInfo(Art.logTitle, s"Initialized system for system test")
   }
 
@@ -489,15 +423,9 @@ object ArtNative_Ext {
     //JH added:
     for (srcPortId <- eventPortIds ++ dataPortIds) {
       outPortVariables.get(srcPortId.toZ) match {
-        case scala.Some(variableQueue: Queue[ArtMessage]) =>
-          outInfrastructurePorts.get(srcPortId.toZ) match {
-            case scala.Some(infrastructureEnqueue: Enqueue[ArtMessage]) => {
-              variableQueue.drain((msg: ArtMessage) => infrastructureEnqueue.offer(msg))
-            }
-            case _ => require(F, "Unable to release output.")
-          }
-          // outInfrastructurePorts(srcPortId.toZ) = outPortVariables(srcPortId.toZ)
-        case _ => require(F, "Infeasible")
+        case scala.Some(msg) =>
+          outInfrastructurePorts(srcPortId.toZ) = outPortVariables(srcPortId.toZ)
+        case _ =>
       }
     }
   }
@@ -509,7 +437,6 @@ object ArtNative_Ext {
    */
   def manuallyClearOutput(): Unit = {
     outPortVariables.clear()
-    setUpPortVariableQueues()
   }
 
   // JH: Refactor
@@ -528,9 +455,9 @@ object ArtNative_Ext {
     // logic separate for future refactoring
     Art.port(dstPortId).mode match {
       case PortMode.DataIn | PortMode.DataOut =>
-        inInfrastructurePorts(dstPortId.toZ).asInstanceOf[Queue[ArtMessage]].offer(artMessage)
+        inInfrastructurePorts(dstPortId.toZ) = artMessage
       case PortMode.EventIn | PortMode.EventOut =>
-        inInfrastructurePorts(dstPortId.toZ).asInstanceOf[Queue[ArtMessage]].offer(artMessage)
+        inInfrastructurePorts(dstPortId.toZ) = artMessage
     }
   }
 
@@ -547,18 +474,12 @@ object ArtNative_Ext {
     Art.port(portId).mode match {
       case PortMode.DataIn =>
         inInfrastructurePorts.get(portId.toZ) match {
-          case scala.Some(dequeue: Dequeue[ArtMessage]) => dequeue.peek() match {
-              case org.sireum.Some(value: ArtMessage) => org.sireum.Some[DataContent](value.data)
-              case org.sireum.None() => org.sireum.None[DataContent]()
-          }
+          case scala.Some(value: ArtMessage) => org.sireum.Some[DataContent](value.data)
           case scala.None => org.sireum.None[DataContent]()
         }
       case PortMode.EventIn =>
         inInfrastructurePorts.get(portId.toZ) match {
-          case scala.Some(dequeue: Dequeue[ArtMessage]) => dequeue.peek() match {
-            case org.sireum.Some(value: ArtMessage) => org.sireum.Some[DataContent](value.data)
-            case org.sireum.None() => org.sireum.None[DataContent]()
-          }
+          case scala.Some(value: ArtMessage) => org.sireum.Some[DataContent](value.data)
           case scala.None => org.sireum.None[DataContent]()
         }
       case _ => {
@@ -577,32 +498,7 @@ object ArtNative_Ext {
   def observeOutInfrastructurePort(portId: Art.PortId): Option[DataContent] = {
     // note: would be changed when we refactor to support event queues of size > 1
     outInfrastructurePorts.get(portId.toZ) match {
-      case scala.Some(enqueue: Enqueue[ArtMessage]) => enqueue match {
-        // case 1: infrastructureOut's implementation supports Read+Write
-        case queue: Queue[ArtMessage] => queue.peek() match {
-          case org.sireum.Some(value: ArtMessage) => org.sireum.Some[DataContent](value.data)
-          case org.sireum.None() => org.sireum.None[DataContent]()
-        }
-        // case 2: infrastructureOut's implementation supports R+W but is not backed by type-erasure friendly Queue
-        case dequeue: Dequeue[_] => dequeue.peek() match {
-          case org.sireum.Some(value: ArtMessage) => {
-            // while 'T extends Enqueue with Dequeue' is technically valid for custom queues, 'T extends Queue' is
-            // better because it prevent type erasure when pattern matching
-            eprintln("WARNING: Custom infrastructure queues supporting Read+Write should also extend the Queue trait")
-            org.sireum.Some[DataContent](value.data)
-          }
-          // impossible state included or type checker
-          case org.sireum.Some(unmatchable) => {
-            assert(false, st"reached invalid state as outInfrastructure's queue should contain ArtMessage: ${unmatchable}".render)
-            org.sireum.None[DataContent]()
-          }
-          case org.sireum.None() => org.sireum.None[DataContent]()
-        }
-        case _ => {
-          assert(false, "it is impossible to observe an outInfrastructure port if its underlying implementation doesn't support reads")
-          org.sireum.None[DataContent]()
-        }
-      }
+      case scala.Some(value: ArtMessage) => org.sireum.Some[DataContent](value.data)
       case scala.None => org.sireum.None[DataContent]()
     }
   }
@@ -619,18 +515,12 @@ object ArtNative_Ext {
     Art.port(portId).mode match {
       case PortMode.DataIn =>
         inPortVariables.get(portId.toZ) match {
-          case scala.Some(dequeue: Dequeue[ArtMessage]) => dequeue.peek() match {
-            case org.sireum.Some(value: ArtMessage) => org.sireum.Some[DataContent](value.data)
-            case org.sireum.None() => org.sireum.None[DataContent]()
-          }
+          case scala.Some(value: ArtMessage) => org.sireum.Some[DataContent](value.data)
           case scala.None => org.sireum.None[DataContent]()
         }
       case PortMode.EventIn =>
         inPortVariables.get(portId.toZ) match {
-          case scala.Some(dequeue: Dequeue[ArtMessage]) => dequeue.peek() match {
-            case org.sireum.Some(value: ArtMessage) => org.sireum.Some[DataContent](value.data)
-            case org.sireum.None() => org.sireum.None[DataContent]()
-          }
+          case scala.Some(value: ArtMessage) => org.sireum.Some[DataContent](value.data)
           case scala.None => org.sireum.None[DataContent]()
         }
       case _ => {
@@ -649,10 +539,7 @@ object ArtNative_Ext {
   def observeOutPortVariable(portId: Art.PortId): Option[DataContent] = {
     // note: that could would be changed when we refactor to support event queues of size > 1
     outPortVariables.get(portId.toZ) match {
-      case scala.Some(dequeue: Dequeue[ArtMessage]) => dequeue.peek() match {
-        case org.sireum.Some(value: ArtMessage) => org.sireum.Some[DataContent](value.data)
-        case org.sireum.None() => org.sireum.None[DataContent]()
-      }
+      case scala.Some(value: ArtMessage) => org.sireum.Some[DataContent](value.data)
       case scala.None => org.sireum.None[DataContent]()
     }
   }

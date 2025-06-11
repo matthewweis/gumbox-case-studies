@@ -52,11 +52,9 @@ object ArtDebug_Ext {
       // right now, there is no difference between treatment of data and event ports, but keep the logic
       // separate for further refactoring
       if (bridge.ports.dataIns.elements.map(_.id).contains(port)) {
-        // assume inInfrastructure Dequeue can be cast to a 2-way queue.
-        // If not then it is probably a network queue and may not be possible to inject into
-        ArtNative_Ext.inInfrastructurePorts(port.toZ).asInstanceOf[Queue[ArtMessage]].offer(ArtMessage(data))
+        ArtNative_Ext.inInfrastructurePorts(port.toZ) = ArtMessage(data)
       } else {
-        ArtNative_Ext.inInfrastructurePorts(port.toZ).asInstanceOf[Queue[ArtMessage]].offer(ArtMessage(data))
+        ArtNative_Ext.inInfrastructurePorts(port.toZ) = ArtMessage(data)
       }
     }
   }

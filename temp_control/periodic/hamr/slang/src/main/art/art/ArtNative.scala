@@ -30,7 +30,7 @@ import art.scheduling.Scheduler
 
   def tearDownSystemState(): Unit = $
 
-  def setUpSystemState(registry: InfrastructureRegistry): Unit = $
+  def setUpSystemState(): Unit = $
 
   // JH: Refactor
   def initializePhase(): Unit = $
@@ -90,7 +90,7 @@ import art.scheduling.Scheduler
 
   // JH: Refactored
   //   add system test capability
-  def initSystemTest(services: IS[Art.PortId, Option[PortServiceBundle]], scheduler: Scheduler): Unit = $
+  def initSystemTest(scheduler: Scheduler): Unit = $
 
   //  def executeSystemTest(): Unit = $
 
